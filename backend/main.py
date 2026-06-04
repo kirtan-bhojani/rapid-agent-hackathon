@@ -2,6 +2,13 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from tools.time_tool import get_time
 from tools.calculator_tool import add
+from agent.agent import run_agent
+from tools.search_tool import (
+    search_scholarships,
+    search_universities,
+    search_jobs,
+    search_internships
+)
 
 from google import genai
 from dotenv import load_dotenv
@@ -51,3 +58,15 @@ def add_numbers(a: int, b: int):
     return {
         "result": add(a, b)
     }
+@app.get("/agent")
+def agent(q: str):
+
+    result = run_agent(q)
+
+    return {
+        "result": result
+    }
+@app.get("/scholarships")
+def scholarships(q: str):
+
+    return search_scholarships(q)
