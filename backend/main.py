@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from tools.time_tool import get_time
 from tools.calculator_tool import add
 from agent.agent import run_agent
+from agent.orchestrator import handle_request
 from tools.search_tool import (
     search_scholarships,
     search_universities,
@@ -59,13 +60,9 @@ def add_numbers(a: int, b: int):
         "result": add(a, b)
     }
 @app.get("/agent")
-def agent(q: str):
+async def agent(q: str):
 
-    result = run_agent(q)
-
-    return {
-        "result": result
-    }
+    return await handle_request(q)
 @app.get("/scholarships")
 def scholarships(q: str):
 
