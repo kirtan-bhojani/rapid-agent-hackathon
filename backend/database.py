@@ -9,7 +9,6 @@ print(f"DEBUG: Found .env file at: {dotenv_path}")
 load_dotenv(dotenv_path)
 
 mongo_uri = os.getenv("MONGO_URI")
-print(f"DEBUG: Loaded URI: {mongo_uri}")
 
 # If it's still None, we stop before PyMongo crashes
 if not mongo_uri:
@@ -18,8 +17,6 @@ if not mongo_uri:
 client = MongoClient(mongo_uri)
 
 # ... rest of your database code ...
-mongo_uri = os.getenv("MONGO_URI")
-client = MongoClient(mongo_uri)
 
 public_db = client["public_data"]
 vault_db = client["secure_vault"]

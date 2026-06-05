@@ -1,6 +1,7 @@
 from pypdf import PdfReader
 from services.gemini_service import client
 import json
+from database import save_user_profile
 
 
 def extract_pdf_text(pdf_path):
@@ -109,3 +110,23 @@ def split_profile_data(profile):
             public_data[key] = profile[key]
 
     return public_data, sensitive_data
+def process_resume(
+    pdf_path,
+    user_id
+):
+
+    profile = parse_resume(
+        pdf_path
+    )
+
+    public_data, sensitive_data = split_profile_data(
+        profile
+    )
+
+    save_user_profile(
+        user_id,
+        public_data,
+        sensitive_data
+    )
+
+    return profile
