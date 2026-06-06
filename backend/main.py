@@ -3,12 +3,15 @@ from fastapi.middleware.cors import CORSMiddleware
 from tools.time_tool import get_time
 from tools.calculator_tool import add
 from agent.agent import run_agent
+from agent.orchestrator import handle_request
 from tools.search_tool import (
     search_scholarships,
     search_universities,
     search_jobs,
-    search_internships
+    search_internships,
 )
+from routes.upload import router as upload_router  # ← NEW
+from routes.extract import router as extract_router  # ← NEW
 
 from google import genai
 from dotenv import load_dotenv
@@ -27,46 +30,46 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ── Routers ───────────────────────────────────────────────────────────────────
+app.include_router(upload_router)  # ← NEW  →  POST /upload/
+app.include_router(extract_router)  # POST /extract/   ← NEW
+
+# ── Gemini client ─────────────────────────────────────────────────────────────
 client = genai.Client(
     api_key=os.getenv("GEMINI_API_KEY")
 )
+
+# ── Existing routes ───────────────────────────────────────────────────────────
 
 @app.get("/")
 def home():
     return {"message": "Backend is running"}
 
+
 @app.get("/ask")
 def ask(q: str):
-
     response = client.models.generate_content(
         model="gemini-2.5-flash-lite",
-        contents=q
+        contents=q,
     )
+    return {"answer": response.text}
 
-    return {
-        "answer": response.text
-    }
+
 @app.get("/time")
 def time():
+    return {"time": get_time()}
 
-    return {
-        "time": get_time()
-    }
+
 @app.get("/add")
 def add_numbers(a: int, b: int):
+    return {"result": add(a, b)}
 
-    return {
-        "result": add(a, b)
-    }
+
 @app.get("/agent")
-def agent(q: str):
+async def agent(q: str):
+    return await handle_request(q)
 
-    result = run_agent(q)
 
-    return {
-        "result": result
-    }
 @app.get("/scholarships")
 def scholarships(q: str):
-
     return search_scholarships(q)
