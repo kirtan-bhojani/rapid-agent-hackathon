@@ -3,3 +3,5 @@ uvicorn
 python-dotenv
 google-genai
 pymongo
+python-multipart
+bcrypts

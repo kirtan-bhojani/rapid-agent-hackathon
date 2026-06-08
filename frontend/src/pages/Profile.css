@@ -1,0 +1,364 @@
+/* Profile.css — Modern profile dashboard styles */
+
+/* ── Page container ───────────────────────────────────────────────── */
+
+.profile-page {
+    padding: 40px;
+    max-width: 900px;
+    margin: auto;
+    animation: prof-fade-in 0.45s ease;
+}
+
+@keyframes prof-fade-in {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Loading state ────────────────────────────────────────────────── */
+
+.profile-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 120px 32px;
+    gap: 20px;
+    animation: prof-fade-in 0.4s ease;
+}
+
+.profile-loading__spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid rgba(79, 110, 247, 0.2);
+    border-top-color: #4f6ef7;
+    border-radius: 50%;
+    animation: prof-spin 0.75s linear infinite;
+}
+
+@keyframes prof-spin {
+    to { transform: rotate(360deg); }
+}
+
+.profile-loading p {
+    color: #6b7280;
+    font-size: 15px;
+}
+
+/* ── Section card (shared base) ───────────────────────────────────── */
+
+.prof-card {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    padding: 28px 32px;
+    margin-bottom: 20px;
+    transition: border-color 0.3s;
+}
+
+.prof-card:hover {
+    border-color: rgba(255, 255, 255, 0.14);
+}
+
+/* ── Section titles ───────────────────────────────────────────────── */
+
+.prof-section-title {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: #6b7280;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.prof-section-title::before {
+    content: "";
+    width: 3px;
+    height: 14px;
+    border-radius: 2px;
+    background: #4f6ef7;
+    flex-shrink: 0;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   HEADER CARD
+   ══════════════════════════════════════════════════════════════════ */
+
+.prof-header {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 32px 36px;
+}
+
+.prof-header__avatar {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #4f6ef7 0%, #7c3aed 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 28px;
+    font-weight: 700;
+    color: #ffffff;
+    flex-shrink: 0;
+    text-transform: uppercase;
+    letter-spacing: -1px;
+}
+
+.prof-header__info {
+    flex: 1;
+    min-width: 0;
+}
+
+.prof-header__name {
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 6px;
+    word-break: break-word;
+}
+
+.prof-header__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 20px;
+    margin-top: 10px;
+}
+
+.prof-header__meta-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: #9ca3af;
+    font-size: 14px;
+}
+
+.prof-header__meta-icon {
+    font-size: 15px;
+    flex-shrink: 0;
+    opacity: 0.7;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   ACADEMIC CARD
+   ══════════════════════════════════════════════════════════════════ */
+
+.prof-academic__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 20px;
+}
+
+.prof-academic__item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.prof-academic__label {
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: #6b7280;
+}
+
+.prof-academic__value {
+    font-size: 15px;
+    font-weight: 500;
+    color: #e5e7eb;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   SKILLS / COURSES — chip grid
+   ══════════════════════════════════════════════════════════════════ */
+
+.prof-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.prof-chip {
+    font-size: 13px;
+    font-weight: 500;
+    padding: 6px 14px;
+    border-radius: 20px;
+    background: rgba(79, 110, 247, 0.1);
+    color: #93b0ff;
+    border: 1px solid rgba(79, 110, 247, 0.18);
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.prof-chip:hover {
+    background: rgba(79, 110, 247, 0.18);
+    border-color: rgba(79, 110, 247, 0.32);
+}
+
+/* Course chips — slightly different color to distinguish */
+
+.prof-chip--course {
+    background: rgba(139, 92, 246, 0.1);
+    color: #c4b5fd;
+    border-color: rgba(139, 92, 246, 0.18);
+}
+
+.prof-chip--course:hover {
+    background: rgba(139, 92, 246, 0.18);
+    border-color: rgba(139, 92, 246, 0.32);
+}
+
+/* "Show more / Show less" toggle */
+
+.prof-chips-toggle {
+    background: none;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    color: #9ca3af;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 6px 16px;
+    cursor: pointer;
+    transition: color 0.2s, border-color 0.2s;
+}
+
+.prof-chips-toggle:hover {
+    color: #e5e7eb;
+    border-color: rgba(255, 255, 255, 0.22);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   EXPERIENCE CARDS
+   ══════════════════════════════════════════════════════════════════ */
+
+.prof-experience-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.prof-exp-card {
+    background: rgba(255, 255, 255, 0.025);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 14px;
+    padding: 22px 24px;
+    transition: border-color 0.3s, transform 0.2s;
+}
+
+.prof-exp-card:hover {
+    border-color: rgba(255, 255, 255, 0.13);
+    transform: translateY(-2px);
+}
+
+.prof-exp-card__title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #f3f4f6;
+    margin-bottom: 4px;
+}
+
+.prof-exp-card__org {
+    font-size: 14px;
+    color: #7c9aff;
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.prof-exp-card__dates {
+    font-size: 13px;
+    color: #6b7280;
+    margin-bottom: 10px;
+}
+
+.prof-exp-card__desc {
+    font-size: 14px;
+    color: #9ca3af;
+    line-height: 1.55;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   PROJECT CARDS
+   ══════════════════════════════════════════════════════════════════ */
+
+.prof-projects-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 14px;
+}
+
+.prof-project-card {
+    background: rgba(255, 255, 255, 0.025);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 14px;
+    padding: 22px 24px;
+    transition: border-color 0.3s, transform 0.2s;
+}
+
+.prof-project-card:hover {
+    border-color: rgba(255, 255, 255, 0.13);
+    transform: translateY(-2px);
+}
+
+.prof-project-card__title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #f3f4f6;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.prof-project-card__title::before {
+    content: "◆";
+    font-size: 8px;
+    color: #4f6ef7;
+}
+
+.prof-project-card__desc {
+    font-size: 14px;
+    color: #9ca3af;
+    line-height: 1.55;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   RESPONSIVE
+   ══════════════════════════════════════════════════════════════════ */
+
+@media (max-width: 640px) {
+
+    .profile-page {
+        padding: 24px 16px;
+    }
+
+    .prof-card {
+        padding: 22px 20px;
+        border-radius: 16px;
+    }
+
+    .prof-header {
+        flex-direction: column;
+        text-align: center;
+        padding: 28px 24px;
+    }
+
+    .prof-header__meta {
+        justify-content: center;
+    }
+
+    .prof-header__name {
+        font-size: 24px;
+    }
+
+    .prof-academic__grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .prof-projects-grid {
+        grid-template-columns: 1fr;
+    }
+}

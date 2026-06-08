@@ -1,79 +1,366 @@
+/* Dashboard.css — Polished dashboard styles */
+
+/* ── Page container ───────────────────────────────────────────────── */
+
 .dashboard {
     padding: 40px;
     max-width: 1300px;
     margin: auto;
+    animation: dash-fade-in 0.45s ease;
 }
 
-.header {
+@keyframes dash-fade-in {
+    from { opacity: 0; transform: translateY(12px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Header ───────────────────────────────────────────────────────── */
+
+.dash-header {
     margin-bottom: 40px;
 }
 
-.header h1 {
-    font-size: 42px;
+.dash-header h1 {
+    font-size: 36px;
     font-weight: 700;
+    line-height: 1.2;
 }
 
-.header p {
-    margin-top: 10px;
+.dash-header p {
+    margin-top: 8px;
     color: #9ca3af;
+    font-size: 15px;
 }
 
-.cards {
+/* ══════════════════════════════════════════════════════════════════
+   STAT CARDS
+   ══════════════════════════════════════════════════════════════════ */
+
+.dash-cards {
     display: grid;
-
-    grid-template-columns:
-        repeat(auto-fit, minmax(260px, 1fr));
-
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     gap: 20px;
 }
 
-.card {
-    background: rgba(255,255,255,0.04);
-
-    border: 1px solid rgba(255,255,255,0.08);
-
-    border-radius: 24px;
-
-    padding: 24px;
-
-    transition: 0.2s ease;
+.dash-card {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    padding: 26px 28px;
+    transition: transform 0.25s ease, border-color 0.3s, box-shadow 0.3s;
+    position: relative;
+    overflow: hidden;
 }
 
-.card:hover {
-    transform: translateY(-3px);
-
-    border-color:
-        rgba(255,255,255,0.15);
+/* Gradient top accent stripe */
+.dash-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    border-radius: 20px 20px 0 0;
 }
 
-.card h3 {
+.dash-card--blue::before {
+    background: linear-gradient(90deg, #4f6ef7, #7c9aff);
+}
+
+.dash-card--purple::before {
+    background: linear-gradient(90deg, #8b5cf6, #a78bfa);
+}
+
+.dash-card--green::before {
+    background: linear-gradient(90deg, #10b981, #34d399);
+}
+
+/* Hover glow */
+.dash-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(255, 255, 255, 0.14);
+}
+
+.dash-card--blue:hover {
+    box-shadow: 0 8px 30px rgba(79, 110, 247, 0.12);
+}
+
+.dash-card--purple:hover {
+    box-shadow: 0 8px 30px rgba(139, 92, 246, 0.12);
+}
+
+.dash-card--green:hover {
+    box-shadow: 0 8px 30px rgba(16, 185, 129, 0.12);
+}
+
+/* Card header row — icon + label */
+.dash-card__header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.dash-card__icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+.dash-card--blue .dash-card__icon {
+    background: rgba(79, 110, 247, 0.14);
+}
+
+.dash-card--purple .dash-card__icon {
+    background: rgba(139, 92, 246, 0.14);
+}
+
+.dash-card--green .dash-card__icon {
+    background: rgba(16, 185, 129, 0.14);
+}
+
+.dash-card__label {
+    font-size: 13px;
+    font-weight: 500;
     color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+}
 
+/* Card value */
+.dash-card__value {
+    font-size: 36px;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 0;
+}
+
+.dash-card--blue .dash-card__value {
+    color: #ffffff;
+}
+
+.dash-card--purple .dash-card__value {
+    color: #ffffff;
+}
+
+.dash-card--green .dash-card__value {
+    color: #ffffff;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   PROGRESS BAR (inside Profile Completion card)
+   ══════════════════════════════════════════════════════════════════ */
+
+.dash-progress {
+    margin-top: 16px;
+}
+
+.dash-progress__track {
+    width: 100%;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.dash-progress__fill {
+    height: 100%;
+    border-radius: 3px;
+    background: linear-gradient(90deg, #4f6ef7, #7c9aff);
+    transition: width 0.6s ease;
+}
+
+.dash-progress__text {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 6px;
+    font-size: 12px;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   QUICK ACTIONS
+   ══════════════════════════════════════════════════════════════════ */
+
+.dash-actions {
+    margin-top: 28px;
+    margin-bottom: 8px;
+}
+
+.dash-actions__title {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: #6b7280;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.dash-actions__title::before {
+    content: "";
+    width: 3px;
+    height: 14px;
+    border-radius: 2px;
+    background: #4f6ef7;
+    flex-shrink: 0;
+}
+
+.dash-actions__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+}
+
+.dash-action {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 14px;
+    padding: 16px 20px;
+    transition: transform 0.2s, border-color 0.3s, box-shadow 0.3s;
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+}
+
+.dash-action:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.16);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+}
+
+.dash-action__icon {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: rgba(79, 110, 247, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+    flex-shrink: 0;
+}
+
+.dash-action__text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.dash-action__label {
     font-size: 14px;
+    font-weight: 600;
+    color: #e5e7eb;
+}
 
+.dash-action__sub {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+/* Disabled action (Set Goal) */
+.dash-action--disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.dash-action--disabled .dash-action__icon {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   DEADLINE CARD
+   ══════════════════════════════════════════════════════════════════ */
+
+.dash-deadline {
+    margin-top: 28px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 20px;
+    padding: 26px 28px;
+    border-left: 3px solid #f59e0b;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.dash-deadline:hover {
+    border-color: rgba(255, 255, 255, 0.14);
+    border-left-color: #f59e0b;
+    box-shadow: 0 4px 20px rgba(245, 158, 11, 0.06);
+}
+
+.dash-deadline__header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+}
+
+.dash-deadline__icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: rgba(245, 158, 11, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+.dash-deadline__title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #f3f4f6;
+}
+
+.dash-deadline__name {
+    font-size: 15px;
+    color: #d1d5db;
     margin-bottom: 10px;
 }
 
-.card h2 {
-    font-size: 32px;
+.dash-deadline__date {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #fbbf24;
+    background: rgba(245, 158, 11, 0.1);
+    border: 1px solid rgba(245, 158, 11, 0.2);
+    padding: 5px 14px;
+    border-radius: 20px;
 }
 
-.deadline {
-    margin-top: 40px;
+/* ── Responsive ───────────────────────────────────────────────────── */
 
-    background: rgba(255,255,255,0.04);
+@media (max-width: 768px) {
 
-    border: 1px solid rgba(255,255,255,0.08);
+    .dashboard {
+        padding: 24px 16px;
+    }
 
-    border-radius: 24px;
+    .dash-header h1 {
+        font-size: 28px;
+    }
 
-    padding: 24px;
-}
+    .dash-card__value {
+        font-size: 28px;
+    }
 
-.deadline h2 {
-    margin-bottom: 10px;
-}
-
-.deadline p {
-    color: #9ca3af;
+    .dash-actions__grid {
+        grid-template-columns: 1fr;
+    }
 }

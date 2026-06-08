@@ -1,0 +1,326 @@
+/* Documents.css — Documents page + DocumentUpload component styles */
+
+/* ── Page layout ──────────────────────────────────────────────────── */
+
+.documents-page {
+    padding: 40px;
+    max-width: 860px;
+    margin: auto;
+}
+
+.documents-page__header {
+    margin-bottom: 36px;
+}
+
+.documents-page__header h1 {
+    font-size: 36px;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.documents-page__header p {
+    color: #9ca3af;
+    font-size: 15px;
+    line-height: 1.5;
+}
+
+/* ── Supported types chips ────────────────────────────────────────── */
+
+.documents-page__types {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.documents-page__type-chip {
+    font-size: 12px;
+    font-weight: 500;
+    padding: 4px 12px;
+    border-radius: 20px;
+    background: rgba(79, 110, 247, 0.12);
+    color: #7c9aff;
+    border: 1px solid rgba(79, 110, 247, 0.2);
+    letter-spacing: 0.3px;
+    text-transform: capitalize;
+}
+
+/* ── Upload card ──────────────────────────────────────────────────── */
+
+.doc-upload {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    padding: 32px;
+    margin-bottom: 24px;
+    transition: border-color 0.3s;
+}
+
+.doc-upload:hover {
+    border-color: rgba(255, 255, 255, 0.14);
+}
+
+/* ── Fields ───────────────────────────────────────────────────────── */
+
+.doc-upload__field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.doc-upload__field label {
+    color: #9ca3af;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.doc-upload__field input[type="file"] {
+    background: #0f1117;
+    border: 1px solid #2a2d3e;
+    border-radius: 8px;
+    color: #ffffff;
+    font-size: 14px;
+    padding: 12px 16px;
+    outline: none;
+    transition: border-color 0.2s;
+    cursor: pointer;
+}
+
+.doc-upload__field input[type="file"]:hover:not(:disabled) {
+    border-color: #3d4663;
+}
+
+.doc-upload__field input[type="file"]:focus {
+    border-color: #4f6ef7;
+}
+
+.doc-upload__field input[type="file"]:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.doc-upload__field select {
+    background: #0f1117;
+    border: 1px solid #2a2d3e;
+    border-radius: 8px;
+    color: #ffffff;
+    font-size: 14px;
+    padding: 12px 16px;
+    outline: none;
+    transition: border-color 0.2s;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%239ca3af'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 16px center;
+}
+
+.doc-upload__field select:hover:not(:disabled) {
+    border-color: #3d4663;
+}
+
+.doc-upload__field select:focus {
+    border-color: #4f6ef7;
+}
+
+.doc-upload__field select:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* ── Progress bar ─────────────────────────────────────────────────── */
+
+.doc-upload__progress {
+    margin-bottom: 20px;
+}
+
+.doc-upload__progress-track {
+    width: 100%;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.doc-upload__progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #4f6ef7, #7c9aff);
+    border-radius: 3px;
+    transition: width 0.5s ease;
+}
+
+/* ── Button ───────────────────────────────────────────────────────── */
+
+.doc-upload__actions {
+    margin-bottom: 0;
+}
+
+.doc-upload__btn {
+    width: 100%;
+    background: #4f6ef7;
+    border: none;
+    border-radius: 8px;
+    color: #ffffff;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 13px 24px;
+    transition: background 0.2s, transform 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.doc-upload__btn:hover:not(:disabled) {
+    background: #3d5ce5;
+    transform: translateY(-1px);
+}
+
+.doc-upload__btn:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.doc-upload__btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* ── Spinner ──────────────────────────────────────────────────────── */
+
+.doc-upload__spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: #ffffff;
+    border-radius: 50%;
+    animation: doc-spin 0.7s linear infinite;
+}
+
+@keyframes doc-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ── Success state ────────────────────────────────────────────────── */
+
+.doc-upload__success {
+    text-align: center;
+    padding: 24px 16px;
+    animation: doc-fade-in 0.4s ease;
+}
+
+.doc-upload__success-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: rgba(52, 211, 153, 0.14);
+    color: #34d399;
+    font-size: 24px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+    border: 2px solid rgba(52, 211, 153, 0.3);
+}
+
+.doc-upload__success p {
+    color: #34d399;
+    font-size: 15px;
+    font-weight: 500;
+}
+
+@keyframes doc-fade-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Error state ──────────────────────────────────────────────────── */
+
+.doc-upload__error {
+    margin-top: 16px;
+    padding: 10px 14px;
+    background: rgba(248, 113, 113, 0.08);
+    border: 1px solid rgba(248, 113, 113, 0.2);
+    border-radius: 6px;
+}
+
+.doc-upload__error p {
+    color: #f87171;
+    font-size: 13px;
+    margin: 0;
+}
+
+/* ── Document history placeholder ─────────────────────────────────── */
+
+.documents-page__history {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px dashed rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    padding: 40px 32px;
+    text-align: center;
+}
+
+.documents-page__history-icon {
+    font-size: 32px;
+    margin-bottom: 12px;
+    opacity: 0.5;
+}
+
+.documents-page__history p {
+    color: #6b7280;
+    font-size: 14px;
+}
+
+/* ── Profile CTA (used on Profile page empty state) ───────────────── */
+
+.profile-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 80px 32px;
+    animation: doc-fade-in 0.5s ease;
+}
+
+.profile-empty__icon {
+    font-size: 48px;
+    margin-bottom: 20px;
+    opacity: 0.6;
+}
+
+.profile-empty h2 {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+.profile-empty p {
+    color: #9ca3af;
+    font-size: 15px;
+    margin-bottom: 28px;
+    max-width: 380px;
+    line-height: 1.5;
+}
+
+.profile-empty__cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #4f6ef7;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 12px 28px;
+    border-radius: 8px;
+    transition: background 0.2s, transform 0.15s;
+}
+
+.profile-empty__cta:hover {
+    background: #3d5ce5;
+    transform: translateY(-1px);
+    color: #ffffff;
+}
