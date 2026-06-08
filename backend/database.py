@@ -25,8 +25,8 @@ vault_db  = client["secure_vault"]
 
 public_profiles   = public_db["profiles"]           # one record per uploaded doc
 encrypted_records = vault_db["pii_records"]          # sensitive PII
-unified_profiles  = public_db["unified_profiles"]   # ← NEW: one record per user
-
+unified_profiles  = public_db["unified_profiles"]  # ← NEW: one record per user
+users = public_db["users"]
 
 # =====================================================================
 #  EXISTING FUNCTIONS — unchanged

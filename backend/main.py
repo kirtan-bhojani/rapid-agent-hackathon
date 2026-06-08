@@ -13,6 +13,7 @@ from tools.search_tool import (
 from routes.upload import router as upload_router  # ← NEW
 from routes.extract import router as extract_router  # ← NEW
 from routes.profile import router as profile_router  # ← NEW
+from routes.auth import router as auth_router
 
 from google import genai
 from dotenv import load_dotenv
@@ -35,6 +36,7 @@ app.add_middleware(
 app.include_router(upload_router)  # ← NEW  →  POST /upload/
 app.include_router(extract_router)  # POST /extract/   ← NEW
 app.include_router(profile_router)  # POST /profile/build   GET /profile/{user_id}   ← NEW
+app.include_router(auth_router)
 
 # ── Gemini client ─────────────────────────────────────────────────────────────
 client = genai.Client(
