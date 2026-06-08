@@ -1,0 +1,79 @@
+.dashboard {
+    padding: 40px;
+    max-width: 1300px;
+    margin: auto;
+}
+
+.header {
+    margin-bottom: 40px;
+}
+
+.header h1 {
+    font-size: 42px;
+    font-weight: 700;
+}
+
+.header p {
+    margin-top: 10px;
+    color: #9ca3af;
+}
+
+.cards {
+    display: grid;
+
+    grid-template-columns:
+        repeat(auto-fit, minmax(260px, 1fr));
+
+    gap: 20px;
+}
+
+.card {
+    background: rgba(255,255,255,0.04);
+
+    border: 1px solid rgba(255,255,255,0.08);
+
+    border-radius: 24px;
+
+    padding: 24px;
+
+    transition: 0.2s ease;
+}
+
+.card:hover {
+    transform: translateY(-3px);
+
+    border-color:
+        rgba(255,255,255,0.15);
+}
+
+.card h3 {
+    color: #9ca3af;
+
+    font-size: 14px;
+
+    margin-bottom: 10px;
+}
+
+.card h2 {
+    font-size: 32px;
+}
+
+.deadline {
+    margin-top: 40px;
+
+    background: rgba(255,255,255,0.04);
+
+    border: 1px solid rgba(255,255,255,0.08);
+
+    border-radius: 24px;
+
+    padding: 24px;
+}
+
+.deadline h2 {
+    margin-bottom: 10px;
+}
+
+.deadline p {
+    color: #9ca3af;
+}

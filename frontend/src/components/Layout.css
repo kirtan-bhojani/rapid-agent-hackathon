@@ -1,0 +1,50 @@
+.app-layout {
+
+    display: flex;
+
+    min-height: 100vh;
+}
+
+.sidebar {
+
+    width: 260px;
+
+    background: #111827;
+
+    border-right: 1px solid rgba(255,255,255,0.08);
+
+    padding: 30px;
+}
+
+.sidebar h2 {
+
+    margin-bottom: 30px;
+}
+
+.sidebar nav {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 15px;
+}
+
+.sidebar a {
+
+    color: #9ca3af;
+
+    transition: 0.2s;
+}
+
+.sidebar a:hover {
+
+    color: white;
+}
+
+.content {
+
+    flex: 1;
+
+    padding: 20px;
+}
