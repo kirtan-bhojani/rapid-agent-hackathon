@@ -18,7 +18,7 @@ import json
 import logging
 import re
 from typing import Any, Callable, Dict, Optional
-
+from agent.goal_agent import extract_goal
 from google import genai
 from dotenv import load_dotenv
 import os
@@ -91,6 +91,11 @@ TOOL_REGISTRY: Dict[str, Dict[str, Any]] = {
         "description": "Search for internships on the web.",
         "args": ["query"],
     },
+    "goal": {
+    "fn": extract_goal,
+    "description": "Understand student career or study goals.",
+    "args": ["query"]
+}
 }
 
 
@@ -117,7 +122,31 @@ You are an intelligent intent-classification agent.
 Available tools:
 
 {tool_descriptions}
+Examples:
 
+"I want to pursue MS in Germany."
+→ {{"tool":"goal","reason":"User is expressing a future study goal."}}
+
+"I want to become a Machine Learning Engineer."
+→ {{"tool":"goal","reason":"User is expressing a future career goal."}}
+
+"I want to switch from Electronics to Data Science."
+→ {{"tool":"goal","reason":"User wants a career transition."}}
+
+"Find scholarships for MS in Canada."
+→ {{"tool":"search_scholarships","reason":"User wants scholarship opportunities."}}
+
+"Show software internships in Bangalore."
+→ {{"tool":"search_internships","reason":"User wants internship opportunities."}}
+
+"Find universities in Germany."
+→ {{"tool":"search_universities","reason":"User wants university information."}}
+
+"What is 5 + 10?"
+→ {{"tool":"calculator","reason":"Arithmetic calculation."}}
+
+"What time is it?"
+→ {{"tool":"time","reason":"Current time request."}}
 User query:
 \"{user_query}\"
 
