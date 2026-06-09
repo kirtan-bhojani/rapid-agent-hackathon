@@ -77,10 +77,17 @@ Format:
     "email": "",
     "phone": "",
     "address": "",
-    "date_of_birth": "",
+
+    "institution": "",
+    "degree": "",
+    "major": "",
+
     "education": [],
     "skills": [],
     "experience": [],
+    "projects": [],
+    "extra_curriculars": [],
+    "awards": [],
     "certifications": [],
     "languages": []
 }}
@@ -89,6 +96,7 @@ Rules:
 - Return only JSON.
 - Do not use markdown or code fences.
 - If a field is missing, use "" or [].
+- institution, degree and major should represent the applicant's current or most recent primary degree.
 
 Resume:
 {text}
@@ -104,8 +112,6 @@ Format:
 {{
     "student_name": "",
     "student_id": "",
-    "national_id": "",
-    "date_of_birth": "",
     "institution": "",
     "degree": "",
     "major": "",

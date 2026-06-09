@@ -48,17 +48,11 @@ def _merge_resume(profile: dict, doc: dict) -> None:
         prof["skills"] = doc.get("skills", [])
     if not prof["experience"]:
         prof["experience"] = doc.get("experience", [])
-    if not prof["education"]:
-        prof["education"] = doc.get("education", [])
     if not prof["projects"]:
         prof["projects"] = doc.get("projects", [])
 
-
-def _merge_transcript(profile: dict, doc: dict) -> None:
-    """Merge transcript fields into the academic section."""
-
+    #academic
     academic = profile["academic"]
-
     if not academic["institution"]:
         academic["institution"] = doc.get("institution", "")
     if not academic["degree"]:
@@ -67,10 +61,26 @@ def _merge_transcript(profile: dict, doc: dict) -> None:
         academic["major"] = doc.get("major", "")
     if not academic["gpa"]:
         academic["gpa"] = doc.get("gpa", "")
-    if not academic["graduation_date"]:
-        academic["graduation_date"] = doc.get("graduation_date", "")
-    if not academic["courses"]:
-        academic["courses"] = doc.get("courses", [])
+    if not academic["education"]:
+        academic["education"] = doc.get("education", "")
+
+def _merge_transcript(profile: dict, doc: dict) -> None:
+    """Merge transcript fields into the academic section."""
+
+    academic = profile["academic"]
+
+    if doc.get("institution"):
+        academic["institution"] = doc["institution"]
+    if doc.get("degree"):
+        academic["degree"] = doc["degree"]
+    if doc.get("major"):
+        academic["major"] = doc["major"]
+    if doc.get("gpa"):
+        academic["gpa"] = doc["gpa"]
+    if doc.get("graduation_date"):
+        academic["graduation_date"] = doc["graduation_date"]
+    if doc.get("courses"):
+        academic["courses"] = doc["courses"]
 
     # Transcript may also carry the student's name
     personal = profile["personal"]
@@ -166,11 +176,11 @@ def _blank_profile(user_id: str) -> dict:
             "gpa":             "",
             "graduation_date": "",
             "courses":         [],
+            "education":       [],
         },
         "professional": {
             "skills":     [],
             "experience": [],
-            "education":  [],
             "projects":   [],
         },
         "language_tests": {
