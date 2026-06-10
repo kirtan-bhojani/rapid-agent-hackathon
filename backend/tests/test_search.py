@@ -1,7 +1,9 @@
-from tools.search_tool import search_opportunities
+# test_search.py
 
-result = search_opportunities(
-    "Machine Learning scholarships Germany"
+from tools.search_tool import search_universities
+
+results = search_universities(
+    "MS Artificial Intelligence Germany"
 )
 
-print(result)
+print(results)
