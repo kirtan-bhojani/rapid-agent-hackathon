@@ -1,9 +1,10 @@
 __pycache__/
 *.pyc
-
-uploads/
+*.pyo
+*.pyd
 
 venv/
-
-*.env
 .env
+
+node_modules/
+dist/
