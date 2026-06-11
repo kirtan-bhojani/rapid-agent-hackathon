@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "mongodb-mcp-server": "^1.12.0"
+  }
+}

@@ -4,4 +4,4 @@ python-dotenv
 google-genai
 pymongo
 python-multipart
-bcrypts
+bcrypt
