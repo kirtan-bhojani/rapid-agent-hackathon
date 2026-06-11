@@ -5,3 +5,5 @@ google-genai
 pymongo
 python-multipart
 bcrypt
+mcp
+pypdf
