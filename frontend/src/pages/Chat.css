@@ -1,0 +1,89 @@
+.chat-container {
+    max-width: 800px;
+    margin: 2rem auto;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    min-height: 400px;
+}
+
+.chat-title {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #2e3b4e;
+    margin-bottom: 1rem;
+    text-align: center;
+}
+
+.chat-input-area {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.chat-input {
+    flex: 1;
+    padding: 0.75rem;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 1rem;
+}
+
+.chat-btn {
+    padding: 0.75rem 1.5rem;
+    background: #00684a;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.chat-btn:disabled {
+    background: #a5d6a7;
+    cursor: not-allowed;
+}
+
+.trace-viewer {
+    flex: 1;
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.trace-log {
+    padding: 1rem;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    animation: fadeIn 0.3s ease-in-out;
+}
+
+.trace-agent {
+    background: #e3f2fd;
+    border-left: 4px solid #2196f3;
+}
+
+.trace-mcp {
+    background: #e8f5e9;
+    border-left: 4px solid #4caf50;
+    font-family: monospace;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.roadmap-btn-container {
+    margin-top: 2rem;
+    text-align: center;
+}
