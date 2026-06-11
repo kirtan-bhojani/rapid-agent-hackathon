@@ -6,6 +6,8 @@ import Layout from "../components/Layout";
 import "../pages/Documents.css";     // reuse .profile-empty styles
 import "./Profile.css";
 
+const API = import.meta.env.VITE_API_URL;
+
 export default function Profile() {
 
     // --- profile state ---
@@ -23,7 +25,7 @@ export default function Profile() {
             return;
         }
 
-        fetch(`http://127.0.0.1:8000/profile/${userId}`)
+        fetch(`${API}/profile/${userId}`)
             .then((res) => {
 
                 if (res.status === 404) {

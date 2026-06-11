@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+const API = import.meta.env.VITE_API_URL;
+
 export default function DocumentUpload({ onUploadComplete }) {
 
     // --- upload state ---
@@ -43,7 +45,7 @@ export default function DocumentUpload({ onUploadComplete }) {
             formData.append("file", selectedFile);
             formData.append("document_type", documentType);
 
-            const uploadRes = await fetch("http://127.0.0.1:8000/upload/", {
+            const uploadRes = await fetch(`${API}/upload/`, {
                 method: "POST",
                 body: formData,
             });
@@ -68,7 +70,7 @@ export default function DocumentUpload({ onUploadComplete }) {
 
         try {
 
-            const extractRes = await fetch("http://127.0.0.1:8000/extract/", {
+            const extractRes = await fetch(`${API}/extract/`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -95,7 +97,7 @@ export default function DocumentUpload({ onUploadComplete }) {
 
         try {
 
-            const buildRes = await fetch("http://127.0.0.1:8000/profile/build", {
+            const buildRes = await fetch(`${API}/profile/build`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ user_id: userId }),

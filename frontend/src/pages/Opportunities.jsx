@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import Layout from "../components/Layout";
 import "./Opportunities.css";
 
+const API = import.meta.env.VITE_API_URL;
+
 export default function Opportunities() {
     const [opportunities, setOpportunities] = useState([]);
     const [loading, setLoading] = useState(false);
@@ -26,7 +28,7 @@ export default function Opportunities() {
         setOpportunities([]);
 
         try {
-            const res = await fetch(`http://127.0.0.1:8000/opportunities/${userId}?category=${cat}`);
+            const res = await fetch(`${API}/opportunities/${userId}?category=${cat}`);
             const data = await res.json();
 
             if (res.ok && data.status === "success") {

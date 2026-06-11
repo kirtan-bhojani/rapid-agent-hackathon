@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import "./auth.css";
 
+const API = import.meta.env.VITE_API_URL;
+
 export default function Login() {
 
     const [email, setEmail] = useState("");
@@ -21,7 +23,7 @@ export default function Login() {
 
         try {
 
-            const res = await fetch("http://127.0.0.1:8000/auth/login", {
+            const res = await fetch(`${API}/auth/login`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ email, password }),

@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import "./Chat.css";
 
+const API = import.meta.env.VITE_API_URL;
+
 export default function Chat() {
     const [goal, setGoal] = useState("");
     const [loading, setLoading] = useState(false);
@@ -23,7 +25,6 @@ export default function Chat() {
         const userId = localStorage.getItem("user_id");
 
         try {
-            const API = import.meta.env.VITE_API_URL;
             const res = await fetch(`${API}/career-plan/`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },

@@ -5,6 +5,8 @@ import { Link } from "react-router-dom";
 import "./Dashboard.css";
 import Layout from "../components/Layout";
 
+const API = import.meta.env.VITE_API_URL;
+
 export default function Dashboard() {
 
     const [profile, setProfile] = useState(null);
@@ -19,7 +21,7 @@ export default function Dashboard() {
             return;
         }
 
-        fetch(`http://127.0.0.1:8000/profile/${userId}`)
+        fetch(`${API}/profile/${userId}`)
             .then((res) => {
 
                 if (res.status === 404) {

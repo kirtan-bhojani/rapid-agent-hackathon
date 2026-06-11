@@ -3,6 +3,8 @@ import Layout from "../components/Layout";
 import "./Roadmap.css";
 import "./Chat.css"; // Reuse trace styles
 
+const API = import.meta.env.VITE_API_URL;
+
 export default function Roadmap() {
     const [plan, setPlan] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -15,7 +17,7 @@ export default function Roadmap() {
         const userId = localStorage.getItem("user_id");
         if (!userId) return;
         try {
-            const res = await fetch(`http://127.0.0.1:8000/career-plan/${userId}`);
+            const res = await fetch(`${API}/career-plan/${userId}`);
             const data = await res.json();
             if (res.ok) {
                 setPlan(data.data);
@@ -59,7 +61,7 @@ export default function Roadmap() {
 
         const userId = localStorage.getItem("user_id");
         try {
-            const res = await fetch("http://127.0.0.1:8000/career-plan/career-status-update", {
+            const res = await fetch(`${API}/career-plan/career-status-update`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ user_id: userId, update: updateText }),
