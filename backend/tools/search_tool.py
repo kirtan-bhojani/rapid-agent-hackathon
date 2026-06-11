@@ -142,7 +142,7 @@ def _university_prompt(query):
     return f"""
 Search the web for university degree programs matching this query:
 {query}
-Return a JSON array of upto 8 results. Prioritize BREADTH — include top-ranked,
+Return a JSON array of upto 6 results. Prioritize BREADTH — include top-ranked,
 mid-tier, and less competitive institutions from multiple countries/regions.
 Each object must follow the EXACT schema below.
 Every field must be present in every result.
@@ -257,7 +257,7 @@ IMPORTANT INSTRUCTIONS:
 - NEVER reproduce long passages from scholarship pages.
 - Extract facts into the structured JSON fields below.
 - Use concise, original wording for all text fields.
-Return a JSON array of upto 8 results. Include government, university-specific,
+Return a JSON array of upto 10 results. Include government, university-specific,
 foundation, and private scholarships. Include both merit-based and need-based.
 Each object must follow the EXACT schema below.
 Every field must be present in every result.
