@@ -11,3 +11,6 @@ node_modules/
 
 # Vite
 dist/
+backend/.env
+frontend/.env
+backend/uploads/

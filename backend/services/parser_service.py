@@ -264,31 +264,23 @@ LOR:
 #  INTERNAL HELPERS
 # =====================================================================
 
-def _clean_json(raw: str) -> str:
-    """Strip markdown code fences that Gemini sometimes wraps output in."""
-    cleaned = raw.strip()
-    if cleaned.startswith("```"):
-        # Remove opening fence (```json or ```)
-        cleaned = cleaned.split("\n", 1)[-1]
-        # Remove closing fence
-        if cleaned.endswith("```"):
-            cleaned = cleaned.rsplit("```", 1)[0]
-    return cleaned.strip()
-
-
 def _call_gemini(prompt: str) -> str:
     """Send a prompt to Gemini and return the raw text response."""
+    from google.genai import types
     response = client.models.generate_content(
         model="gemini-2.5-flash-lite",
         contents=prompt,
+        config=types.GenerateContentConfig(
+            response_mime_type="application/json"
+        )
     )
     return response.text
 
 
 def _parse_gemini_response(raw: str) -> dict:
-    """Clean and JSON-parse a Gemini response. Returns error dict on failure."""
+    """JSON-parse a Gemini response. Returns error dict on failure."""
     try:
-        return json.loads(_clean_json(raw))
+        return json.loads(raw)
     except Exception as exc:
         return {"error": str(exc), "raw": raw}
 

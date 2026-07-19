@@ -8,22 +8,13 @@ from dotenv import load_dotenv
 load_dotenv()
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
-def clean_json(text: str) -> str:
-    text = text.strip()
-    start = -1
-    for i, char in enumerate(text):
-        if char in '[{':
-            start = i
-            break
-    end = -1
-    for i in range(len(text)-1, -1, -1):
-        if text[i] in ']}':
-            end = i
-            break
-            
-    if start != -1 and end != -1 and start <= end:
-        return text[start:end+1]
-    return text
+from pydantic import BaseModel
+from google.genai import types
+
+class ProgressUpdate(BaseModel):
+    completed_step_id: int | None
+    completed_step_title: str
+    next_action: str
 
 async def determine_progress(roadmap: List[Dict[str, Any]], update_text: str) -> Dict[str, Any]:
     prompt = f"""
@@ -34,14 +25,16 @@ async def determine_progress(roadmap: List[Dict[str, Any]], update_text: str) ->
     
     Identify which step_id the user is talking about, and mark its status as "Completed".
     Also provide a short encouraging message for the "next_action" based on the next pending step.
-    
-    Return ONLY valid JSON with exactly these fields:
-    - completed_step_id (integer, or null if no match found)
-    - completed_step_title (string)
-    - next_action (string)
     """
-    res = client.models.generate_content(model="gemini-2.5-flash-lite", contents=prompt)
-    return json.loads(clean_json(res.text))
+    res = client.models.generate_content(
+        model="gemini-2.5-flash-lite", 
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            response_mime_type="application/json",
+            response_schema=ProgressUpdate,
+        )
+    )
+    return json.loads(res.text)
 
 async def run_progress_agent(user_id: str, update_text: str, mcp_client: Any) -> Dict[str, Any]:
     trace_logs = []

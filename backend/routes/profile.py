@@ -40,13 +40,7 @@ def build_profile(req: BuildProfileRequest):
             detail="'user_id' must not be empty.",
         )
 
-    try:
-        profile = build_unified_profile(req.user_id)
-    except Exception as exc:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to build profile: {exc}",
-        ) from exc
+    profile = build_unified_profile(req.user_id)
 
     return {
         "status": "success",
@@ -63,13 +57,7 @@ def get_profile(user_id: str):
     - Reads directly from public_data.unified_profiles
     - Returns HTTP 404 if the profile has not been built yet
     """
-    try:
-        profile = get_unified_profile(user_id)
-    except Exception as exc:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to fetch profile: {exc}",
-        ) from exc
+    profile = get_unified_profile(user_id)
 
     if profile is None:
         raise HTTPException(

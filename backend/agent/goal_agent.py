@@ -3,6 +3,19 @@ import re
 from typing import Dict, Any, Optional
 
 from services.gemini_service import client
+from google.genai import types
+from pydantic import BaseModel
+
+class GoalAgentExtraction(BaseModel):
+    goal_type: str
+    target_role: str
+    degree: str
+    field: str
+    country: str
+    timeline: str
+    needs_scholarship: bool
+    constraints: list[str]
+    raw_query: str
 
 
 def extract_goal(
@@ -61,88 +74,29 @@ Output:
     "raw_query": "I want to pursue MS in AI in Germany by Fall 2027 with scholarships."
 }}
 
-User Query:
-"I want a software engineer job in Germany."
-
-Output:
-{{
-    "goal_type": "Job",
-    "target_role": "Software Engineer",
-    "degree": "Unknown",
-    "field": "Software Engineering",
-    "country": "Germany",
-    "timeline": "Unknown",
-    "needs_scholarship": false,
-    "constraints": [],
-    "raw_query": "I want a software engineer job in Germany."
-}}
-
-User Query:
-"I want to switch from Electronics to Data Science."
-
-Output:
-{{
-    "goal_type": "Career Switch",
-    "target_role": "Data Scientist",
-    "degree": "Unknown",
-    "field": "Data Science",
-    "country": "Unknown",
-    "timeline": "Unknown",
-    "needs_scholarship": false,
-    "constraints": [],
-    "raw_query": "I want to switch from Electronics to Data Science."
-}}
-
 Unified Profile:
 {profile_context}
 
 User Query:
 "{query}"
-
-Return ONLY valid JSON.
-
-Use EXACTLY this schema:
-
-{{
-    "goal_type": "",
-    "target_role": "",
-    "degree": "",
-    "field": "",
-    "country": "",
-    "timeline": "",
-    "needs_scholarship": false,
-    "constraints": [],
-    "raw_query": ""
-}}
-
-Do NOT include markdown.
-Do NOT include explanations.
-Do NOT include extra fields.
 """
 
     try:
         response = client.models.generate_content(
             model="gemini-2.5-flash-lite",
             contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=GoalAgentExtraction,
+            )
         )
 
         raw = response.text.strip()
-
         print("\nRAW RESPONSE:")
         print(raw)
         print("-" * 80)
 
-        # Remove markdown fences if Gemini returns them
-        if raw.startswith("```"):
-            raw = re.sub(r"^```(?:json)?", "", raw)
-            raw = re.sub(r"```$", "", raw)
-            raw = raw.strip()
-
         return json.loads(raw)
-
-    except json.JSONDecodeError as e:
-        print("JSON ERROR:", e)
-        print("FAILED RAW:", raw)
 
     except Exception as e:
         print("GEMINI ERROR:", repr(e))

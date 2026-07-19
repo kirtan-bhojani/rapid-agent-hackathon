@@ -10,36 +10,39 @@ from dotenv import load_dotenv
 load_dotenv()
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
-def clean_json(text: str) -> str:
-    text = text.strip()
-    # Find the first [ or { and the last ] or }
-    start = -1
-    for i, char in enumerate(text):
-        if char in '[{':
-            start = i
-            break
-    end = -1
-    for i in range(len(text)-1, -1, -1):
-        if text[i] in ']}':
-            end = i
-            break
-            
-    if start != -1 and end != -1 and start <= end:
-        return text[start:end+1]
-    return text
+from pydantic import BaseModel
+from google.genai import types
+
+class GoalExtraction(BaseModel):
+    target_role: str
+    timeline: str
+
+class GapAnalysis(BaseModel):
+    missing_skills: list[str]
+    recommended_actions: list[str]
+
+class RoadmapStep(BaseModel):
+    step_id: int
+    title: str
+    description: str
+    status: str
 
 async def extract_goal(query: str) -> Dict[str, Any]:
     prompt = f"""
     Extract the career goal from the query.
-    Return ONLY valid JSON with exactly these fields:
-    - target_role (string: e.g., "Cloud Architect", "ML Engineer", "Data Scientist", "Software Engineer")
-    - timeline (string: e.g., "6 months")
     
     Query: "{query}"
     """
-    res = client.models.generate_content(model="gemini-2.5-flash-lite", contents=prompt)
     try:
-        data = json.loads(clean_json(res.text))
+        res = client.models.generate_content(
+            model="gemini-2.5-flash-lite", 
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=GoalExtraction,
+            )
+        )
+        data = json.loads(res.text)
         if not data.get("target_role") or str(data.get("target_role")).lower() == "none":
             data["target_role"] = "Software Engineer"
         if not data.get("timeline") or str(data.get("timeline")).lower() == "none":
@@ -51,9 +54,6 @@ async def extract_goal(query: str) -> Dict[str, Any]:
 async def perform_gap_analysis(profile: Dict[str, Any], template: Dict[str, Any]) -> Dict[str, Any]:
     prompt = f"""
     Compare the user's current profile with the role template requirements.
-    Return ONLY valid JSON with exactly these fields:
-    - missing_skills (list of strings)
-    - recommended_actions (list of strings)
     
     User Profile:
     {json.dumps(profile, indent=2)}
@@ -61,22 +61,32 @@ async def perform_gap_analysis(profile: Dict[str, Any], template: Dict[str, Any]
     Role Template:
     {json.dumps(template, indent=2)}
     """
-    res = client.models.generate_content(model="gemini-2.5-flash-lite", contents=prompt)
-    return json.loads(clean_json(res.text))
+    res = client.models.generate_content(
+        model="gemini-2.5-flash-lite", 
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            response_mime_type="application/json",
+            response_schema=GapAnalysis,
+        )
+    )
+    return json.loads(res.text)
 
 async def generate_roadmap(gaps: Dict[str, Any], timeline: str) -> list:
     prompt = f"""
     Create a step-by-step roadmap to achieve the goal in {timeline} addressing these gaps:
     {json.dumps(gaps, indent=2)}
     
-    Return ONLY a valid JSON ARRAY of objects, each with:
-    - step_id (integer)
-    - title (string)
-    - description (string)
-    - status (must be exactly "Pending")
+    The status must be exactly "Pending" for all steps.
     """
-    res = client.models.generate_content(model="gemini-2.5-flash-lite", contents=prompt)
-    return json.loads(clean_json(res.text))
+    res = client.models.generate_content(
+        model="gemini-2.5-flash-lite", 
+        contents=prompt,
+        config=types.GenerateContentConfig(
+            response_mime_type="application/json",
+            response_schema=list[RoadmapStep],
+        )
+    )
+    return json.loads(res.text)
 
 async def run_career_pipeline(user_id: str, query: str, profile: Dict[str, Any], mcp_client: Any) -> Dict[str, Any]:
     trace_logs = []

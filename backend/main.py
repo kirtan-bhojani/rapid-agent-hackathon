@@ -1,4 +1,7 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+import logging
+import traceback
 from fastapi.middleware.cors import CORSMiddleware
 from tools.time_tool import get_time
 from tools.calculator_tool import add
@@ -57,6 +60,23 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+logger = logging.getLogger("api")
+logger.setLevel(logging.ERROR)
+if not logger.handlers:
+    _handler = logging.StreamHandler()
+    _handler.setFormatter(logging.Formatter("[%(asctime)s] %(levelname)s | %(name)s | %(message)s", datefmt="%H:%M:%S"))
+    logger.addHandler(_handler)
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Unhandled Exception on {request.method} {request.url}")
+    logger.error(traceback.format_exc())
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "An internal server error occurred. Please try again later."},
+    )
+
 
 # ── Routers ───────────────────────────────────────────────────────────────────
 app.include_router(upload_router)  # ← NEW  →  POST /upload/

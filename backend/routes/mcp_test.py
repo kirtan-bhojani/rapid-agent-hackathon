@@ -1,12 +1,11 @@
-from fastapi import APIRouter, Request, HTTPException
+from fastapi import APIRouter, Request, HTTPException, Depends
+from dependencies import get_mcp_client
+from typing import Any
 
 router = APIRouter(prefix="/mcp", tags=["mcp"])
 
 @router.get("/health")
-async def mcp_health(request: Request):
-    mcp_client = getattr(request.app.state, "mcp_client", None)
-    if not mcp_client or not mcp_client.session:
-        raise HTTPException(status_code=503, detail="MCP Client is not initialized.")
+async def mcp_health(mcp_client: Any = Depends(get_mcp_client)):
     
     is_healthy = await mcp_client.check_health()
     tools = await mcp_client.session.list_tools()
@@ -18,10 +17,7 @@ async def mcp_health(request: Request):
     }
 
 @router.get("/tools")
-async def mcp_tools(request: Request):
-    mcp_client = getattr(request.app.state, "mcp_client", None)
-    if not mcp_client or not mcp_client.session:
-        raise HTTPException(status_code=503, detail="MCP Client is not initialized.")
+async def mcp_tools(mcp_client: Any = Depends(get_mcp_client)):
     
     tools = await mcp_client.session.list_tools()
     return {
@@ -32,14 +28,8 @@ async def mcp_tools(request: Request):
     }
 
 @router.get("/test-databases")
-async def mcp_test_databases(request: Request):
-    mcp_client = getattr(request.app.state, "mcp_client", None)
-    if not mcp_client or not mcp_client.session:
-        raise HTTPException(status_code=503, detail="MCP Client is not initialized.")
+async def mcp_test_databases(mcp_client: Any = Depends(get_mcp_client)):
     
-    try:
-        result = await mcp_client.session.call_tool("list-databases", arguments={})
-        texts = [c.text for c in result.content if c.type == "text"]
-        return {"databases": texts}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    result = await mcp_client.session.call_tool("list-databases", arguments={})
+    texts = [c.text for c in result.content if c.type == "text"]
+    return {"databases": texts}

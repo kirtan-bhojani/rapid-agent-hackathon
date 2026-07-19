@@ -86,11 +86,6 @@ async def upload_document(
         contents = await file.read()
         with open(file_path, "wb") as f:
             f.write(contents)
-    except Exception as exc:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Failed to save file: {exc}",
-        ) from exc
     finally:
         await file.close()
 

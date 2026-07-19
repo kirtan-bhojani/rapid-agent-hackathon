@@ -65,15 +65,7 @@ def extract_document(req: ExtractRequest):
     _validate_request(req)
 
     # 2. Dispatch to the correct processor
-    try:
-        profile = process_document(req.document_type, req.file_path, req.user_id)
-
-
-    except Exception as exc:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Extraction failed: {exc}",
-        ) from exc
+    profile = process_document(req.document_type, req.file_path, req.user_id)
 
     # 3. Surface a parsing-level error returned by process_resume itself
     #    (parser_service returns {"error": ..., "raw": ...} on bad Gemini output)

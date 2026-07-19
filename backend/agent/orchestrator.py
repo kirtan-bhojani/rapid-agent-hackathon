@@ -20,8 +20,14 @@ import re
 from typing import Any, Callable, Dict, Optional
 from agent.goal_agent import extract_goal
 from google import genai
+from google.genai import types
+from pydantic import BaseModel
 from dotenv import load_dotenv
 import os
+
+class IntentClassification(BaseModel):
+    tool: str
+    reason: str
 
 # ── Tool imports ─────────────────────────────────────────────────────
 from tools.time_tool import get_time
@@ -127,23 +133,8 @@ Examples:
 "I want to pursue MS in Germany."
 → {{"tool":"goal","reason":"User is expressing a future study goal."}}
 
-"I want to become a Machine Learning Engineer."
-→ {{"tool":"goal","reason":"User is expressing a future career goal."}}
-
-"I want to switch from Electronics to Data Science."
-→ {{"tool":"goal","reason":"User wants a career transition."}}
-
 "Find scholarships for MS in Canada."
 → {{"tool":"search_scholarships","reason":"User wants scholarship opportunities."}}
-
-"Show software internships in Bangalore."
-→ {{"tool":"search_internships","reason":"User wants internship opportunities."}}
-
-"Find universities in Germany."
-→ {{"tool":"search_universities","reason":"User wants university information."}}
-
-"What is 5 + 10?"
-→ {{"tool":"calculator","reason":"Arithmetic calculation."}}
 
 "What time is it?"
 → {{"tool":"time","reason":"Current time request."}}
@@ -152,28 +143,21 @@ User query:
 
 Choose the single best tool for the query above.
 If no tool fits, use tool name "none".
-
-Respond with ONLY valid JSON (no markdown, no explanation):
-
-{{"tool": "<tool_name>", "reason": "<short reason>"}}
 """
 
     response = client.models.generate_content(
         model="gemini-2.5-flash-lite",
         contents=prompt,
+        config=types.GenerateContentConfig(
+            response_mime_type="application/json",
+            response_schema=IntentClassification,
+        )
     )
 
     raw = response.text.strip()
-
-    # Strip markdown fences if the model wraps its answer
-    if raw.startswith("```"):
-        raw = re.sub(r"^```(?:json)?", "", raw)
-        raw = re.sub(r"```$", "", raw)
-        raw = raw.strip()
-
     try:
         result = json.loads(raw)
-    except json.JSONDecodeError:
+    except Exception as e:
         logger.warning("Classifier returned non-JSON: %s", raw)
         result = {"tool": "none", "reason": "classifier response was not valid JSON"}
 

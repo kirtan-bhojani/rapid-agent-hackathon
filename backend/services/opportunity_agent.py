@@ -12,22 +12,20 @@ from dotenv import load_dotenv
 load_dotenv()
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
-def clean_json(text: str) -> str:
-    text = text.strip()
-    start = -1
-    for i, char in enumerate(text):
-        if char in '[{':
-            start = i
-            break
-    end = -1
-    for i in range(len(text)-1, -1, -1):
-        if text[i] in ']}':
-            end = i
-            break
-            
-    if start != -1 and end != -1 and start <= end:
-        return text[start:end+1]
-    return text
+from pydantic import BaseModel
+
+class Opportunity(BaseModel):
+    title: str
+    organization: str
+    description: str
+    deadline: str
+    application_url: str
+    fit_score: int
+    reasoning: str
+    strengths: list[str]
+    risks: list[str]
+    missing_requirements: list[str]
+    improvement_actions: list[str]
 
 async def fetch_opportunities_from_mcp(mcp_client: Any, cache_key: str) -> List[Dict[str, Any]]:
     result = await mcp_client.session.call_tool("find", arguments={
@@ -99,23 +97,6 @@ async def run_opportunity_agent(user_id: str, profile: Dict[str, Any], plan: Dic
     User Gap Analysis (Missing Skills): {json.dumps(plan.get('gaps', {}).get('missing_skills', []))}
     
     For each opportunity, calculate a deeply personalized 'fit_score' (0-100) based on their strengths and gaps.
-    
-    Return a JSON ARRAY of 3 objects exactly matching this schema:
-    [
-      {{
-        "title": "Job/Scholarship/Course Title",
-        "organization": "Company/University Name",
-        "description": "Short description",
-        "deadline": "Date or Rolling",
-        "application_url": "Real URL to apply",
-        "fit_score": 85,
-        "reasoning": "1 sentence explanation of score",
-        "strengths": ["Matched skill 1", "Matched skill 2"],
-        "risks": ["Risk 1", "Risk 2"],
-        "missing_requirements": ["Missing skill 1", "Missing skill 2"],
-        "improvement_actions": ["Action to improve chance 1", "Action 2"]
-      }}
-    ]
     """
     
     try:
@@ -124,12 +105,13 @@ async def run_opportunity_agent(user_id: str, profile: Dict[str, Any], plan: Dic
             contents=prompt,
             config=types.GenerateContentConfig(
                 tools=[{"google_search": {}}],
-                temperature=0.2
+                temperature=0.2,
+                response_mime_type="application/json",
+                response_schema=list[Opportunity],
             )
         )
         
-        raw_json = clean_json(res.text)
-        new_opportunities = json.loads(raw_json)
+        new_opportunities = json.loads(res.text)
     except Exception as e:
         print(f"[Opportunity Agent] Error during Gemini search: {e}")
         # Fallback dummy if API fails
