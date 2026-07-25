@@ -101,7 +101,7 @@ async def run_opportunity_agent(user_id: str, profile: Dict[str, Any], plan: Dic
     
     try:
         res = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model="gemini-2.5-flash-lite",
             contents=prompt,
             config=types.GenerateContentConfig(
                 tools=[{"google_search": {}}],
