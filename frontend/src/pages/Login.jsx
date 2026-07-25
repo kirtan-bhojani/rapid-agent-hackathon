@@ -38,6 +38,7 @@ export default function Login() {
             }
 
             localStorage.setItem("user_id", data.user_id);
+            localStorage.setItem("user_email", email);
             navigate("/dashboard");
 
         } catch (err) {

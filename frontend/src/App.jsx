@@ -7,6 +7,8 @@ import Profile from "./pages/Profile";
 import Documents from "./pages/Documents";
 import Opportunities from "./pages/Opportunities";
 import Roadmap from "./pages/Roadmap";
+import Goal from "./pages/Goal";
+import GapAnalysis from "./pages/GapAnalysis";
 import Chat from "./pages/Chat";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -31,7 +33,11 @@ function App() {
 
         <Route path="/roadmap" element={<Roadmap />} />
 
-        <Route path="/chat" element={<Chat />} />
+        <Route path="/goal" element={<Goal />} />
+
+        <Route path="/gap-analysis" element={<GapAnalysis />} />
+
+        <Route path="/chat" element={<Goal />} />
 
         <Route path="/login" element={<Login />} />
 

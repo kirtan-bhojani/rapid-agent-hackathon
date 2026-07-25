@@ -1,190 +1,390 @@
-.opp-container {
-    max-width: 1000px;
+/* Opportunities.css */
+
+.opp-page {
+    max-width: 960px;
     margin: 0 auto;
-}
-
-.opp-title {
-    text-align: center;
-    color: #111827;
-    margin-bottom: 30px;
-    font-size: 2.5rem;
-    font-weight: 800;
-    letter-spacing: -0.02em;
-}
-
-.opp-filters {
+    padding: 40px 20px;
     display: flex;
-    justify-content: center;
-    gap: 10px;
-    margin-bottom: 30px;
-    flex-wrap: wrap;
-}
-
-.filter-btn {
-    padding: 8px 16px;
-    border: 1px solid #e5e7eb;
-    background: white;
-    border-radius: 20px;
-    cursor: pointer;
-    font-weight: 600;
-    color: #4b5563;
-    transition: all 0.2s;
-}
-
-.filter-btn:hover {
-    background: #f3f4f6;
-}
-
-.filter-btn.active {
-    background: #2563eb;
-    color: white;
-    border-color: #2563eb;
-}
-
-.opp-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    flex-direction: column;
     gap: 24px;
 }
 
-.opp-card {
-    background: white;
-    border: 1px solid #e5e7eb;
-    border-radius: 12px;
-    padding: 20px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+.opp-error {
+    background: var(--color-danger-dim);
+    border: 1px solid rgba(239,68,68,0.25);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    color: var(--color-danger);
+    font-size: 14px;
+}
+
+/* ── Header ──────────────────────────────────────────────────── */
+.opp-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.opp-header__title {
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -0.4px;
+    color: var(--color-text-primary);
+    margin-bottom: 6px;
+}
+
+.opp-header__goal {
+    font-size: 14px;
+    color: var(--color-text-secondary);
+}
+
+.opp-header__stats {
+    display: flex;
+    gap: 20px;
+}
+
+.opp-stat {
     display: flex;
     flex-direction: column;
-}
-
-.opp-badge {
-    background: #dbeafe;
-    color: #1e40af;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-size: 0.75rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    display: inline-block;
-    margin-bottom: 10px;
-}
-
-.opp-header h3 {
-    margin: 0 0 5px 0;
-    font-size: 1.25rem;
-    color: #111827;
-}
-
-.opp-org {
-    margin: 0 0 15px 0;
-    color: #6b7280;
-    font-weight: 500;
-}
-
-.opp-intelligence {
-    background: #f8fafc;
-    border-radius: 8px;
-    padding: 15px;
-    margin-bottom: 15px;
-    display: flex;
-    gap: 15px;
     align-items: center;
 }
 
-.fit-score-container {
-    text-align: center;
-}
-
-.fit-score {
-    font-size: 2rem;
+.opp-stat__num {
+    font-size: 26px;
     font-weight: 800;
     line-height: 1;
 }
 
-.fit-score-container span {
-    font-size: 0.75rem;
-    color: #64748b;
+.opp-stat__label {
+    font-size: 11px;
     font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--color-text-muted);
+    margin-top: 2px;
 }
 
-.opp-reasoning {
-    font-size: 0.875rem;
-    color: #334155;
-    margin: 0;
-    line-height: 1.4;
+/* ── Tabs ────────────────────────────────────────────────────── */
+.opp-tabs {
+    display: flex;
+    gap: 8px;
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: 2px;
 }
 
-.opp-details details summary {
+.opp-tab {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    background: transparent;
+    border: none;
     cursor: pointer;
-    color: #2563eb;
-    font-weight: 600;
-    margin-bottom: 10px;
+    transition: all var(--transition-fast);
+    position: relative;
+    bottom: -1px;
 }
 
-.details-content h4 {
-    margin: 10px 0 5px 0;
-    font-size: 0.875rem;
-    color: #111827;
+.opp-tab:hover { color: var(--color-text-primary); }
+
+.opp-tab--active {
+    color: var(--color-brand);
+    border-bottom: 2px solid var(--color-brand);
 }
 
-.details-content ul {
-    margin: 0 0 10px 0;
-    padding-left: 0;
-    list-style: none;
-    font-size: 0.875rem;
-    color: #4b5563;
+.opp-tab__count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 20px;
+    height: 20px;
+    border-radius: 100px;
+    font-size: 11px;
+    font-weight: 700;
+    background: var(--color-border);
+    color: var(--color-text-secondary);
+    padding: 0 5px;
 }
 
-.details-content ul li {
+.opp-tab--active .opp-tab__count {
+    background: var(--color-brand-dim);
+    color: var(--color-brand);
+}
+
+/* ── Content ─────────────────────────────────────────────────── */
+.opp-content {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+}
+
+/* ── Tier Section ────────────────────────────────────────────── */
+.tier-section { display: flex; flex-direction: column; gap: 14px; }
+
+.tier-section__header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: var(--color-surface-2);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+}
+
+.tier-section__icon { font-size: 22px; flex-shrink: 0; }
+
+.tier-section__title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+}
+
+.tier-section__desc {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    margin-top: 2px;
+}
+
+.tier-section__count {
+    margin-left: auto;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 100px;
+    background: var(--color-border);
+    color: var(--color-text-secondary);
+}
+
+/* ── Opportunity Grid ────────────────────────────────────────── */
+.opp-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 14px;
+}
+
+@media (max-width: 600px) {
+    .opp-grid { grid-template-columns: 1fr; }
+}
+
+/* ── Opportunity Card ────────────────────────────────────────── */
+.opp-card {
+    background: var(--color-surface-2);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: border-color var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
+    animation: fadeSlideIn 0.3s ease both;
+}
+
+.opp-card:hover {
+    border-color: var(--color-border-strong);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.tier--safe     { border-top: 3px solid var(--color-success); }
+.tier--target   { border-top: 3px solid var(--color-brand);   }
+.tier--ambitious { border-top: 3px solid #a855f7;             }
+.tier--near     { border-top: 3px solid var(--color-warning); }
+.tier--stretch  { border-top: 3px solid var(--color-danger);  }
+
+.opp-card__tier-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--color-text-muted);
+    margin-bottom: 2px;
+}
+
+.opp-card__title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    line-height: 1.4;
+    margin-bottom: 2px;
+}
+
+.opp-card__org {
+    font-size: 13px;
+    color: var(--color-text-secondary);
+}
+
+/* ── Fit Reason ──────────────────────────────────────────────── */
+.opp-card__fit-reason {
+    background: var(--color-brand-dim);
+    border-left: 3px solid var(--color-brand);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    padding: 10px 12px;
+    font-size: 13px;
+    color: var(--color-text-primary);
+    line-height: 1.5;
+}
+
+.opp-card__fit-reason-label {
+    display: block;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--color-brand);
     margin-bottom: 4px;
 }
 
-.opp-actions {
-    margin-top: auto;
+/* ── Detail Chips ────────────────────────────────────────────── */
+.opp-card__details {
     display: flex;
-    gap: 10px;
-    padding-top: 15px;
-    border-top: 1px solid #e5e7eb;
+    flex-wrap: wrap;
+    gap: 6px;
 }
 
-.btn-primary {
-    flex: 1;
-    background: #2563eb;
-    color: white;
+.opp-detail-chip {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 3px 9px;
+    border-radius: 100px;
+    background: var(--color-surface-3);
+    color: var(--color-text-secondary);
+}
+
+.opp-detail-chip--deadline {
+    background: var(--color-warning-dim);
+    color: var(--color-warning);
+}
+
+.opp-detail-chip--funding {
+    background: var(--color-success-dim);
+    color: var(--color-success);
+}
+
+/* ── Gap Summary ─────────────────────────────────────────────── */
+.opp-card__gap-summary {
+    font-size: 12px;
+    color: var(--color-warning);
+    background: var(--color-warning-dim);
+    padding: 8px 10px;
+    border-radius: var(--radius-sm);
+    line-height: 1.5;
+}
+
+/* ── Expand Button ───────────────────────────────────────────── */
+.opp-card__expand-btn {
+    background: none;
     border: none;
-    padding: 10px;
-    border-radius: 6px;
-    font-weight: 600;
+    font-size: 12px;
+    color: var(--color-text-muted);
     cursor: pointer;
+    padding: 4px 0;
+    text-align: left;
+    transition: color var(--transition-fast);
 }
 
-.btn-secondary {
-    flex: 1;
-    background: white;
-    color: #4b5563;
-    border: 1px solid #d1d5db;
-    padding: 10px;
-    border-radius: 6px;
-    font-weight: 600;
-    cursor: pointer;
-    text-align: center;
-    text-decoration: none;
+.opp-card__expand-btn:hover { color: var(--color-brand); }
+
+/* ── Expanded ────────────────────────────────────────────────── */
+.opp-card__expanded {
+    border-top: 1px solid var(--color-border);
+    padding-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    animation: fadeSlideIn 0.2s ease both;
 }
 
-.btn-primary:hover { background: #1d4ed8; }
-.btn-secondary:hover { background: #f3f4f6; }
-
-.opp-error, .opp-empty {
-    text-align: center;
-    padding: 40px;
-    background: white;
-    border-radius: 12px;
-    color: #6b7280;
-    border: 1px solid #e5e7eb;
+.opp-card__expanded-desc {
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    line-height: 1.6;
 }
 
-.opp-error {
-    color: #ef4444;
-    background: #fef2f2;
-    border-color: #fecaca;
+/* Gaps */
+.opp-card__gaps-title,
+.opp-card__unknowns-title,
+.opp-card__docs-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--color-text-muted);
+    margin-bottom: 8px;
+}
+
+.opp-gap-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    padding: 6px 8px;
+    background: var(--color-surface-3);
+    border-radius: var(--radius-sm);
+    flex-wrap: wrap;
+}
+
+.opp-gap-row__req { font-weight: 600; color: var(--color-text-primary); }
+.opp-gap-row__current,
+.opp-gap-row__required { color: var(--color-text-secondary); }
+
+.opp-gap-row__severity {
+    margin-left: auto;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.opp-gap-row__severity--minor { background: var(--color-warning-dim); color: var(--color-warning); }
+.opp-gap-row__severity--major { background: var(--color-danger-dim);  color: var(--color-danger);  }
+
+/* Unknown requirements */
+.opp-card__unknowns-sub {
+    font-size: 12px;
+    color: var(--color-text-secondary);
+    margin-bottom: 6px;
+}
+
+.opp-unknown-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    padding: 5px 8px;
+    background: var(--color-info-dim);
+    border-radius: var(--radius-sm);
+}
+
+.opp-unknown-row__req { font-weight: 600; color: var(--color-info); }
+.opp-unknown-row__val { color: var(--color-text-secondary); }
+
+/* Docs */
+.opp-doc-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.opp-doc-chip {
+    font-size: 11px;
+    padding: 3px 8px;
+    background: var(--color-surface-3);
+    border: 1px solid var(--color-border);
+    border-radius: 100px;
+    color: var(--color-text-secondary);
+}
+
+/* ── Actions ─────────────────────────────────────────────────── */
+.opp-card__actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    padding-top: 4px;
+    border-top: 1px solid var(--color-border);
 }

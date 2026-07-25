@@ -49,6 +49,72 @@ def build_profile(req: BuildProfileRequest):
     }
 
 
+@router.get("/{user_id}/documents")
+def get_user_documents(user_id: str):
+    """
+    Return the list of all documents uploaded by user_id with key extracted fields.
+
+    This powers the Documents page history section.
+    Each entry includes: document_type, and key summary fields (non-sensitive only).
+    Sensitive fields (passport_number, DOB, etc.) remain in secure_vault and are NOT returned.
+    """
+    from database import get_all_user_documents
+
+    docs = get_all_user_documents(user_id)
+
+    if not docs:
+        return {"status": "success", "user_id": user_id, "documents": []}
+
+    summaries = []
+    for doc in docs:
+        doc_type = doc.get("document_type", "unknown")
+        summary = {"document_type": doc_type}
+
+        if doc_type == "resume":
+            summary["name"] = doc.get("name", "")
+            summary["institution"] = doc.get("institution", "")
+            summary["degree"] = doc.get("degree", "")
+            summary["skills_count"] = len(doc.get("skills", []))
+
+        elif doc_type == "transcript":
+            summary["institution"] = doc.get("institution", "")
+            summary["gpa"] = doc.get("gpa", "")
+            summary["degree"] = doc.get("degree", "")
+            summary["major"] = doc.get("major", "")
+
+        elif doc_type == "passport":
+            summary["full_name"] = doc.get("full_name", "")
+            summary["issuing_country"] = doc.get("issuing_country", "")
+            summary["gender"] = doc.get("gender", "")
+
+        elif doc_type == "ielts":
+            summary["candidate_name"] = doc.get("candidate_name", "")
+            summary["overall_band"] = doc.get("overall_band", "")
+            summary["test_type"] = doc.get("test_type", "")
+            summary["test_centre"] = doc.get("test_centre", "")
+            summary["validity_expiry"] = doc.get("validity_expiry", "")
+
+        elif doc_type == "sop":
+            summary["applicant_name"] = doc.get("applicant_name", "")
+            summary["target_program"] = doc.get("target_program", "")
+            summary["target_university"] = doc.get("target_university", "")
+            summary["word_count"] = doc.get("word_count", 0)
+
+        elif doc_type == "lor":
+            summary["applicant_name"] = doc.get("applicant_name", "")
+            summary["recommender_name"] = doc.get("recommender_name", "")
+            summary["recommender_institution"] = doc.get("recommender_institution", "")
+            summary["recommendation_strength"] = doc.get("recommendation_strength", "")
+
+        summaries.append(summary)
+
+    return {
+        "status": "success",
+        "user_id": user_id,
+        "documents": summaries,
+    }
+
+
 @router.get("/{user_id}", response_model=GetProfileResponse)
 def get_profile(user_id: str):
     """

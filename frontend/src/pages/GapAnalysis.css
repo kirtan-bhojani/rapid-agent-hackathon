@@ -1,0 +1,299 @@
+/* GapAnalysis.css — Gap Analysis page */
+
+.gap-page {
+    max-width: 920px;
+    margin: 0 auto;
+    padding: 40px 20px;
+}
+
+/* ── Header ──────────────────────────────────────────────────── */
+.gap-page__header {
+    margin-bottom: 32px;
+}
+
+.gap-page__title {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    color: var(--color-text-primary);
+    margin-bottom: 8px;
+}
+
+.gap-page__subtitle {
+    font-size: 15px;
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+}
+
+/* ── Score Banner ────────────────────────────────────────────── */
+.gap-score-banner {
+    background: var(--color-surface-2);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    padding: 28px;
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+}
+
+.gap-score-ring {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    flex-shrink: 0;
+}
+
+.gap-score-ring svg {
+    transform: rotate(-90deg);
+    width: 100%;
+    height: 100%;
+}
+
+.gap-score-ring__bg {
+    fill: none;
+    stroke: var(--color-border-strong);
+    stroke-width: 8;
+}
+
+.gap-score-ring__fill {
+    fill: none;
+    stroke-width: 8;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 1s ease;
+}
+
+.gap-score-ring__label {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--color-text-primary);
+    line-height: 1;
+}
+
+.gap-score-ring__sub {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 2px;
+}
+
+.gap-score-info {
+    flex: 1;
+    min-width: 200px;
+}
+
+.gap-score-info__goal {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    margin-bottom: 8px;
+    line-height: 1.4;
+}
+
+.gap-score-info__summary {
+    font-size: 14px;
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+    margin-bottom: 14px;
+}
+
+.gap-score-counters {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.gap-counter {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.gap-counter__number {
+    font-size: 22px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.gap-counter__label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--color-text-muted);
+}
+
+.gap-counter--completed .gap-counter__number  { color: var(--color-success); }
+.gap-counter--critical  .gap-counter__number  { color: var(--color-danger); }
+.gap-counter--recommended .gap-counter__number { color: var(--color-warning); }
+.gap-counter--partial   .gap-counter__number  { color: var(--color-info); }
+
+/* ── Next Action Banner ──────────────────────────────────────── */
+.next-action-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    background: linear-gradient(135deg, rgba(79,110,247,0.1) 0%, rgba(124,58,237,0.07) 100%);
+    border: 1px solid var(--color-brand-dim);
+    border-left: 3px solid var(--color-brand);
+    border-radius: var(--radius-lg);
+    padding: 18px 20px;
+    margin-bottom: 28px;
+}
+
+.next-action-banner__icon { font-size: 20px; flex-shrink: 0; }
+
+.next-action-banner__content {}
+
+.next-action-banner__label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+    color: var(--color-brand);
+    margin-bottom: 4px;
+}
+
+.next-action-banner__text {
+    font-size: 14px;
+    color: var(--color-text-primary);
+    font-weight: 500;
+    line-height: 1.5;
+}
+
+/* ── Section ─────────────────────────────────────────────────── */
+.gap-section {
+    margin-bottom: 28px;
+}
+
+.gap-section__header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.gap-section__icon { font-size: 18px; }
+
+.gap-section__title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    flex: 1;
+}
+
+.gap-section__count {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 100px;
+}
+
+.gap-section--completed .gap-section__count  { background: var(--color-success-dim); color: var(--color-success); }
+.gap-section--critical  .gap-section__count  { background: var(--color-danger-dim); color: var(--color-danger); }
+.gap-section--recommended .gap-section__count { background: var(--color-warning-dim); color: var(--color-warning); }
+.gap-section--partial   .gap-section__count  { background: var(--color-info-dim); color: var(--color-info); }
+
+/* ── Gap Items ───────────────────────────────────────────────── */
+.gap-items {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.gap-item {
+    background: var(--color-surface-2);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 16px 18px;
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    transition: border-color var(--transition-fast), transform var(--transition-fast);
+    animation: fadeSlideIn 0.3s ease both;
+}
+
+.gap-item:hover {
+    border-color: var(--color-border-strong);
+    transform: translateX(2px);
+}
+
+.gap-item--completed  { border-left: 3px solid var(--color-success); }
+.gap-item--missing_critical { border-left: 3px solid var(--color-danger); }
+.gap-item--missing_recommended { border-left: 3px solid var(--color-warning); }
+.gap-item--partial    { border-left: 3px solid var(--color-info); }
+
+.gap-item__icon {
+    font-size: 18px;
+    flex-shrink: 0;
+    margin-top: 1px;
+    width: 24px;
+    text-align: center;
+}
+
+.gap-item__body { flex: 1; min-width: 0; }
+
+.gap-item__name {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    margin-bottom: 4px;
+}
+
+.gap-item__evidence {
+    font-size: 12px;
+    color: var(--color-text-muted);
+    margin-bottom: 6px;
+    font-style: italic;
+}
+
+.gap-item__reason {
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+    margin-bottom: 6px;
+}
+
+.gap-item__action {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-brand);
+    background: var(--color-brand-dim);
+    padding: 6px 10px;
+    border-radius: var(--radius-sm);
+    margin-top: 8px;
+    line-height: 1.5;
+}
+
+/* ── CTA Row ─────────────────────────────────────────────────── */
+.gap-cta-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+}
+
+/* ── Empty / Loading ─────────────────────────────────────────── */
+.gap-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 300px;
+    gap: 16px;
+    color: var(--color-text-secondary);
+}

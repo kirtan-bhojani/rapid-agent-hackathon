@@ -1,120 +1,357 @@
-.roadmap-container {
-    max-width: 1000px;
-    margin: 2rem auto;
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    padding: 2rem;
-}
+/* Roadmap.css */
 
-.roadmap-header {
-    margin-bottom: 2rem;
-    padding-bottom: 1rem;
-    border-bottom: 2px solid #eee;
-}
-
-.roadmap-header h1 {
-    color: #2e3b4e;
-    margin-bottom: 0.5rem;
-}
-
-.kanban-board {
+.roadmap-page {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 40px 20px;
     display: flex;
-    gap: 2rem;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.roadmap-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 16px;
+    min-height: 60vh;
+    color: var(--color-text-secondary);
+}
+
+/* ── Header ──────────────────────────────────────────────────── */
+.roadmap-header {
+    display: flex;
     align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
 }
 
-.kanban-col {
-    flex: 1;
-    background: #f4f6f8;
-    border-radius: 6px;
-    padding: 1rem;
-    min-height: 400px;
+.roadmap-header__title {
+    font-size: 24px;
+    font-weight: 800;
+    color: var(--color-text-primary);
+    letter-spacing: -0.4px;
+    margin-bottom: 8px;
 }
 
-.kanban-col h2 {
-    font-size: 1.2rem;
-    color: #4a5568;
-    margin-bottom: 1rem;
+.roadmap-header__meta {
+    display: flex;
+    gap: 16px;
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    flex-wrap: wrap;
+}
+
+.roadmap-progress-chip {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: var(--color-surface-2);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 12px 20px;
+    min-width: 80px;
+    text-align: center;
+}
+
+.roadmap-progress-chip__num {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--color-brand);
+}
+
+.roadmap-progress-chip__label {
+    font-size: 11px;
+    font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    color: var(--color-text-muted);
+    margin-top: 2px;
 }
 
-.task-card {
-    background: white;
-    padding: 1rem;
-    border-radius: 6px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    margin-bottom: 1rem;
-    border-left: 4px solid #cbd5e0;
+/* ── Progress Bar ────────────────────────────────────────────── */
+.roadmap-progress-bar {
+    height: 6px;
+    background: var(--color-border);
+    border-radius: 3px;
+    overflow: hidden;
 }
 
-.task-card.pending {
-    border-left-color: #ed8936;
+.roadmap-progress-bar__fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--color-brand), #7c3aed);
+    border-radius: 3px;
+    transition: width 1s ease;
 }
 
-.task-card.completed {
-    border-left-color: #48bb78;
-    opacity: 0.8;
+.roadmap-progress-text {
+    font-size: 12px;
+    color: var(--color-text-muted);
+    margin-top: -16px;
+    text-align: right;
 }
 
-.task-title {
-    font-weight: bold;
-    margin-bottom: 0.5rem;
-    color: #2d3748;
+/* ── Update Card ─────────────────────────────────────────────── */
+.roadmap-update-card {
+    background: var(--color-surface-2);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    padding: 20px;
 }
 
-.task-desc {
-    font-size: 0.9rem;
-    color: #718096;
-    margin-bottom: 1rem;
+.roadmap-update-card__title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    margin-bottom: 4px;
 }
 
-.task-btn {
-    background: #00684a;
-    color: white;
-    border: none;
-    padding: 0.5rem 1rem;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.85rem;
-    width: 100%;
+.roadmap-update-card__sub {
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    margin-bottom: 14px;
+    line-height: 1.5;
 }
 
-.task-btn:hover {
-    background: #00503a;
-}
-
-.status-update-section {
-    margin-top: 2rem;
-    padding: 1.5rem;
-    background: #e2e8f0;
-    border-radius: 6px;
-}
-
-.status-input-row {
+.roadmap-update-form {
     display: flex;
-    gap: 1rem;
-    margin-bottom: 1rem;
+    gap: 10px;
+    flex-wrap: wrap;
 }
 
-.status-input {
+.roadmap-update-input {
     flex: 1;
-    padding: 0.75rem;
-    border: 1px solid #ccc;
-    border-radius: 4px;
+    min-width: 200px;
+    background: var(--color-surface-3);
+    border: 1px solid var(--color-border-strong);
+    border-radius: var(--radius-md);
+    color: var(--color-text-primary);
+    font-size: 14px;
+    padding: 10px 14px;
+    transition: border-color var(--transition-fast);
 }
 
-.trace-overlay {
-    margin-top: 1rem;
-    background: white;
-    padding: 1rem;
-    border-radius: 4px;
-    border: 1px dashed #a0aec0;
+.roadmap-update-input:focus {
+    border-color: var(--color-brand);
+    box-shadow: 0 0 0 2px var(--color-brand-glow);
 }
 
-.trace-log {
-    margin-bottom: 0.5rem;
-    font-family: monospace;
-    font-size: 0.9rem;
+.roadmap-update-input::placeholder { color: var(--color-text-muted); }
+
+/* ── Section ─────────────────────────────────────────────────── */
+.roadmap-section { display: flex; flex-direction: column; gap: 12px; }
+
+.roadmap-section__header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--color-border);
 }
+
+.roadmap-section__title {
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--color-text-muted);
+    flex: 1;
+}
+
+.roadmap-section__count {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 100px;
+    background: var(--color-border);
+    color: var(--color-text-secondary);
+}
+
+.roadmap-section__count--green {
+    background: var(--color-success-dim);
+    color: var(--color-success);
+}
+
+/* ── Step Cards ──────────────────────────────────────────────── */
+.roadmap-steps { display: flex; flex-direction: column; gap: 10px; }
+
+.step-card {
+    background: var(--color-surface-2);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    transition: border-color var(--transition-fast), transform var(--transition-fast);
+    animation: fadeSlideIn 0.3s ease both;
+}
+
+.step-card:hover { border-color: var(--color-border-strong); }
+
+.step-card--completed {
+    opacity: 0.65;
+}
+
+.step-card--completed .step-card__title { text-decoration: line-through; }
+
+.step-card__header {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px 18px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.step-card__status-icon { font-size: 18px; flex-shrink: 0; margin-top: 2px; }
+
+.step-card__title-area { flex: 1; min-width: 0; }
+
+.step-card__title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    line-height: 1.4;
+    margin-bottom: 8px;
+}
+
+.step-card__num {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--color-brand);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-right: 8px;
+}
+
+.step-card__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+}
+
+.priority-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 100px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.step-meta-chip {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+    background: var(--color-surface-3);
+    padding: 2px 8px;
+    border-radius: 100px;
+}
+
+.step-meta-chip--deadline {
+    color: var(--color-warning);
+    background: var(--color-warning-dim);
+}
+
+.step-card__expand {
+    font-size: 11px;
+    color: var(--color-text-muted);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    flex-shrink: 0;
+    margin-top: 4px;
+    transition: color var(--transition-fast);
+}
+
+.step-card__expand:hover { color: var(--color-text-primary); }
+
+.step-card__body {
+    padding: 0 18px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    border-top: 1px solid var(--color-border);
+    margin-top: -1px;
+    padding-top: 14px;
+    animation: fadeSlideIn 0.2s ease both;
+}
+
+.step-card__description {
+    font-size: 13px;
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+}
+
+.step-card__reason {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    background: var(--color-brand-dim);
+    border-left: 3px solid var(--color-brand);
+    border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+    padding: 10px 12px;
+}
+
+.step-card__reason-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: var(--color-brand);
+}
+
+.step-card__reason-text {
+    font-size: 13px;
+    color: var(--color-text-primary);
+    line-height: 1.5;
+}
+
+.step-card__deps { display: flex; flex-direction: column; gap: 6px; }
+
+.step-card__deps-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--color-text-muted);
+}
+
+.step-card__deps-list { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.step-dep-chip {
+    font-size: 11px;
+    padding: 3px 8px;
+    background: var(--color-surface-3);
+    border: 1px solid var(--color-border);
+    border-radius: 100px;
+    color: var(--color-text-secondary);
+}
+
+.step-card__complete-btn {
+    align-self: flex-start;
+    font-size: 13px;
+    padding: 8px 16px;
+}
+
+/* ── Trace items (shared styles in index.css, override colors here) ── */
+.trace-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 9px 12px;
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    line-height: 1.5;
+    animation: fadeSlideIn 0.3s ease both;
+}
+
+.trace-item--agent { background: var(--color-brand-dim); color: var(--color-brand-light); }
+.trace-item--mcp   { background: var(--color-info-dim);  color: var(--color-info); }
+.trace-item--error { background: var(--color-danger-dim); color: var(--color-danger); }
+.trace-item__icon  { font-size: 14px; flex-shrink: 0; margin-top: 1px; }

@@ -226,7 +226,7 @@ These go into growth categories instead.
 STEP 2 — EVALUATE requirements using a three-stage process for EVERY requirement field:
 
   Stage 1 — Is the requirement value known?
-    Requirement field = "Unknown" → skip entirely. Do nothing.
+    Requirement field = "Unknown" → skip entirely. Do nothing. Do NOT add to unknown_requirements. Do NOT add to known_gaps.
 
   Stage 2 — Is the student's profile value known?
     Profile value = "Unknown" or missing → add to unknown_requirements. STOP.
@@ -328,9 +328,10 @@ STEP 4 — ADD these 5 fields to every classified opportunity:
   NEVER put documents (SOP, LOR, Transcript, etc.) here.
 
 "unknown_requirements"
-  Requirements where the requirement value is known but the student's profile
+  Requirements where the requirement value is KNOWN (e.g., "7.0") but the student's profile
   value is missing or "Unknown". These cannot be evaluated.
-  Use [] if all evaluable requirements are known.
+  CRITICAL: If the requirement value itself is "Unknown", you MUST completely ignore it! Do NOT put it here.
+  Use [] if all evaluable requirements are known or if they are all "Unknown".
   List each unevaluable requirement as:
   {{
     "requirement": "IELTS",
@@ -378,7 +379,7 @@ PLUS the 5 classification fields: status, fit_reason, known_gaps, unknown_requir
     try:
 
         response = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model="gemini-2.5-flash-lite",
             contents=prompt,
         )
 
