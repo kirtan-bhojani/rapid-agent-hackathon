@@ -1,93 +1,54 @@
-import json
-import re
 from typing import Dict, Any, List
-from google import genai
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 from pydantic import BaseModel
-from google.genai import types
+
+from utils.mcp_helpers import find_latest
+
 
 class ProgressUpdate(BaseModel):
     completed_step_id: int | None
     completed_step_title: str
     next_action: str
+    reasoning: str      # WHY this step_id was matched to the user's free-text update
 
-async def determine_progress(roadmap: List[Dict[str, Any]], update_text: str) -> Dict[str, Any]:
+
+async def determine_progress(roadmap: List[Dict[str, Any]], update_text: str, llm_client: Any) -> Dict[str, Any]:
+    import json
+
     prompt = f"""
     The user provided a progress update: "{update_text}"
-    
+
     Here is their current roadmap:
     {json.dumps(roadmap, indent=2)}
-    
+
     Identify which step_id the user is talking about, and mark its status as "Completed".
     Also provide a short encouraging message for the "next_action" based on the next pending step.
+    Also provide a "reasoning" field: explain WHY you matched this step_id to the user's update
+    (or why none matched, if completed_step_id is null).
     """
-    res = client.models.generate_content(
-        model="gemini-2.5-flash-lite", 
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            response_mime_type="application/json",
-            response_schema=ProgressUpdate,
-        )
-    )
-    return json.loads(res.text)
+    output = await llm_client.generate_structured(prompt, ProgressUpdate)
+    return output.model_dump()
 
-async def run_progress_agent(user_id: str, update_text: str, mcp_client: Any) -> Dict[str, Any]:
+
+async def run_progress_agent(user_id: str, update_text: str, mcp_client: Any, llm_client: Any) -> Dict[str, Any]:
     trace_logs = []
-    
+
     print("[Progress Agent] Fetching current roadmap via MCP...")
     trace_logs.append({"type": "mcp", "message": f"Fetching active career plan for {user_id} from rapid.career_plans..."})
-    
-    result = await mcp_client.session.call_tool("find", arguments={
-        "database": "rapid",
-        "collection": "career_plans",
-        "filter": {"user_id": user_id}
-    })
-    
-    all_plans = []
-    for c in result.content:
-        if c.type == "text":
-            text = c.text
-            start = -1
-            for i, char in enumerate(text):
-                if char in '[{':
-                    start = i
-                    break
-            end = -1
-            for i in range(len(text)-1, -1, -1):
-                if text[i] in ']}':
-                    end = i
-                    break
-            if start != -1 and end != -1 and start < end:
-                try:
-                    parsed = json.loads(text[start:end+1])
-                    if isinstance(parsed, list) and len(parsed) > 0:
-                        all_plans.extend(parsed)
-                    elif isinstance(parsed, dict) and "user_id" in parsed:
-                        all_plans.append(parsed)
-                except Exception:
-                    pass
-    
-    plan = None
-    if all_plans:
-        all_plans.sort(key=lambda x: x.get("created_at", ""), reverse=True)
-        plan = all_plans[0]
-                    
+
+    plan = await find_latest(mcp_client, "rapid", "career_plans", {"user_id": user_id})
+
     if not plan:
         trace_logs.append({"type": "error", "message": "Career plan not found in database."})
         raise ValueError("Career plan not found")
-        
+
     trace_logs.append({"type": "mcp", "message": "Successfully retrieved career plan."})
-    
-    print("[Progress Agent] Analyzing update with Gemini...")
+
+    print("[Progress Agent] Analyzing update with LLM...")
     trace_logs.append({"type": "agent", "message": f"Analyzing user update: '{update_text}' against current roadmap..."})
-    
-    progress = await determine_progress(plan["roadmap"], update_text)
-    
+
+    progress = await determine_progress(plan["roadmap"], update_text, llm_client)
+
     completed_id = progress.get("completed_step_id")
     if completed_id is not None:
         trace_logs.append({"type": "agent", "message": f"Identified matching roadmap milestone: {progress.get('completed_step_title')}"})
@@ -95,11 +56,11 @@ async def run_progress_agent(user_id: str, update_text: str, mcp_client: Any) ->
         for step in plan["roadmap"]:
             if step["step_id"] == completed_id:
                 step["status"] = "Completed"
-        
+
         trace_logs.append({"type": "agent", "message": "Roadmap state updated in memory."})
         print("[Progress Agent] Persisting changes via MCP...")
-        trace_logs.append({"type": "mcp", "message": f"Persisting updated roadmap to rapid.career_plans using update-many..."})
-        
+        trace_logs.append({"type": "mcp", "message": "Persisting updated roadmap to rapid.career_plans using update-many..."})
+
         await mcp_client.session.call_tool("update-many", arguments={
             "database": "rapid",
             "collection": "career_plans",

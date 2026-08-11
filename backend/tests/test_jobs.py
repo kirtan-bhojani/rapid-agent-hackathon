@@ -1,7 +1,14 @@
+import asyncio
+
+from services.llm_client import LLMClient
 from tools.search_tool import search_jobs
 
-result = search_jobs(
-    "Machine Learning jobs Germany"
-)
 
-print(result)
+async def main():
+    llm = LLMClient()
+    result = await search_jobs("Machine Learning jobs Germany", llm)
+    print(result)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

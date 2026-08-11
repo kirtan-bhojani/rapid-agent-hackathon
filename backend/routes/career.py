@@ -1,12 +1,11 @@
 from fastapi import APIRouter, Request, HTTPException, Depends
 from pydantic import BaseModel
-import json
-import re
 from typing import List, Dict, Any, Optional
 from services.career_pipeline import run_career_pipeline
 from services.progress_agent import run_progress_agent
 from services.profile_service import get_unified_profile
-from dependencies import get_mcp_client
+from utils.mcp_helpers import find_latest
+from dependencies import get_mcp_client, get_llm_client
 from typing import Any
 
 router = APIRouter(prefix="/career-plan", tags=["career"])
@@ -16,8 +15,12 @@ class CareerPlanRequest(BaseModel):
     goal: str
 
 @router.post("/")
-async def create_career_plan(req: CareerPlanRequest, mcp_client: Any = Depends(get_mcp_client)):
-    
+async def create_career_plan(
+    req: CareerPlanRequest,
+    mcp_client: Any = Depends(get_mcp_client),
+    llm_client: Any = Depends(get_llm_client),
+):
+
     profile = get_unified_profile(req.user_id)
     if not profile:
         raise HTTPException(status_code=404, detail="Unified profile not found. Please upload a resume first.")
@@ -26,7 +29,8 @@ async def create_career_plan(req: CareerPlanRequest, mcp_client: Any = Depends(g
         user_id=req.user_id,
         query=req.goal,
         profile=profile,
-        mcp_client=mcp_client
+        mcp_client=mcp_client,
+        llm_client=llm_client,
     )
     return {"status": "success", "data": plan["data"], "trace_logs": plan["trace_logs"]}
 
@@ -35,56 +39,25 @@ class StatusUpdateRequest(BaseModel):
     update: str
 
 @router.post("/career-status-update")
-async def update_career_status(req: StatusUpdateRequest, mcp_client: Any = Depends(get_mcp_client)):
-    
+async def update_career_status(
+    req: StatusUpdateRequest,
+    mcp_client: Any = Depends(get_mcp_client),
+    llm_client: Any = Depends(get_llm_client),
+):
+
     result = await run_progress_agent(
         user_id=req.user_id,
         update_text=req.update,
-        mcp_client=mcp_client
+        mcp_client=mcp_client,
+        llm_client=llm_client,
     )
     return {"status": "success", "data": result}
 
 @router.get("/{user_id}")
 async def get_career_plan(user_id: str, mcp_client: Any = Depends(get_mcp_client)):
-    
-    result = await mcp_client.session.call_tool("find", arguments={
-        "database": "rapid",
-        "collection": "career_plans",
-        "filter": {"user_id": user_id}
-    })
-    
-    all_plans = []
-    for c in result.content:
-        if c.type == "text":
-            text = c.text
-            # Find first [ or {
-            start = -1
-            for i, char in enumerate(text):
-                if char in '[{':
-                    start = i
-                    break
-            end = -1
-            for i in range(len(text)-1, -1, -1):
-                if text[i] in ']}':
-                    end = i
-                    break
-            
-            if start != -1 and end != -1 and start < end:
-                json_str = text[start:end+1]
-                try:
-                    parsed = json.loads(json_str)
-                    if isinstance(parsed, list) and len(parsed) > 0:
-                        all_plans.extend(parsed)
-                    elif isinstance(parsed, dict) and "user_id" in parsed:
-                        all_plans.append(parsed)
-                except Exception:
-                    pass
-                    
-    if not all_plans:
+
+    plan = await find_latest(mcp_client, "rapid", "career_plans", {"user_id": user_id})
+    if not plan:
         raise HTTPException(status_code=404, detail="Career plan not found.")
-        
-    # Sort plans by created_at descending to get the newest one
-    all_plans.sort(key=lambda x: x.get("created_at", ""), reverse=True)
-    plan = all_plans[0]
-        
+
     return {"status": "success", "data": plan}

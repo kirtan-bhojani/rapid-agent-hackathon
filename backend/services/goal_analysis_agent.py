@@ -9,7 +9,7 @@ This is NOT a roadmap generator. It is a requirements extractor.
 
 Public API
 ──────────
-    run_goal_analysis(user_id, raw_query, profile, mcp_client) → dict
+    run_goal_analysis(user_id, raw_query, profile, mcp_client, llm_client) → dict
         Runs full goal decomposition. Stores result in MongoDB.
         Returns the goal_analysis document.
 
@@ -19,19 +19,14 @@ Public API
 
 from __future__ import annotations
 
-import json
 import datetime
 import uuid
 import hashlib
 from typing import Any, Dict, Optional
-from google import genai
-from google.genai import types
-from pydantic import BaseModel
-import os
-from dotenv import load_dotenv
 
-load_dotenv()
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+from pydantic import BaseModel
+
+from utils.mcp_helpers import find_latest
 
 
 # =====================================================================
@@ -42,6 +37,7 @@ class RequirementItem(BaseModel):
     item: str
     detail: str
     is_optional: bool
+    reasoning: str      # WHY this item is/isn't optional, tied to the goal
 
 class GoalAnalysisOutput(BaseModel):
     # Core goal fields
@@ -64,6 +60,7 @@ class GoalAnalysisOutput(BaseModel):
     application_requirements: list[RequirementItem]   # Deadlines, portals, application fees
     scholarships: list[RequirementItem]               # DAAD, Erasmus, etc.
     additional_notes: list[str]                       # Anything else worth noting
+    reasoning: str                                    # WHY this requirement set is exhaustive for this goal type/destination
 
 
 # =====================================================================
@@ -101,12 +98,17 @@ Instructions:
    - additional_notes: any quirks, tips, or warnings specific to this goal
 
 For is_optional: true means "helpful but not required". false means "mandatory".
+For each item's "reasoning": explain WHY this specific item is/isn't optional for this goal.
 
 Return ALL fields. Be specific. For Germany MSc in Microelectronics, for example:
 - APS certificate IS required (is_optional: false)
 - German B2 is optional for English-taught programs but strongly recommended (is_optional: true)
 - Blocked account of ~11,208 EUR is required (is_optional: false)
 - IELTS minimum 6.5 for most programs (is_optional: false)
+
+Also provide a top-level "reasoning" field: explain WHY this requirement set is exhaustive
+for this specific goal_type + destination + field combination — what expertise or pattern
+you drew on to be confident nothing major was missed.
 
 CRITICAL RULES:
 1. Do NOT list the components of the goal itself as requirements! For example, if the goal is "Master's in Germany", do NOT add "Master's degree" or "Destination: Germany" to the requirements lists. The requirements are what the user NEEDS TO DO or HAVE in order to GET the Master's in Germany (e.g. Bachelor's degree, IELTS, blocked account).
@@ -154,45 +156,13 @@ def _build_profile_context(profile: Dict[str, Any]) -> str:
     return "\n".join(lines) if lines else "Profile partially filled."
 
 
-async def _parse_mcp_docs(result) -> list:
-    """Extract a list of documents from an MCP tool result."""
-    docs = []
-    for c in result.content:
-        if c.type == "text":
-            text = c.text.strip()
-            start = next((i for i, ch in enumerate(text) if ch in "[{"), -1)
-            end = next((i for i in range(len(text) - 1, -1, -1) if text[i] in "]}"), -1)
-            if start != -1 and end != -1 and start < end:
-                try:
-                    parsed = json.loads(text[start : end + 1])
-                    if isinstance(parsed, list):
-                        docs.extend(parsed)
-                    elif isinstance(parsed, dict):
-                        docs.append(parsed)
-                except Exception:
-                    pass
-    return docs
-
-
 # =====================================================================
 #  PUBLIC API
 # =====================================================================
 
 async def get_cached_goal_analysis(user_id: str, mcp_client: Any) -> Optional[Dict[str, Any]]:
     """Return the latest stored goal analysis for user_id, or None."""
-    try:
-        result = await mcp_client.session.call_tool("find", arguments={
-            "database": "rapid",
-            "collection": "goal_analyses",
-            "filter": {"user_id": user_id},
-        })
-        docs = await _parse_mcp_docs(result)
-        if docs:
-            docs.sort(key=lambda x: x.get("created_at", ""), reverse=True)
-            return docs[0]
-    except Exception as e:
-        print(f"[GoalAnalysis] Cache fetch error: {e}")
-    return None
+    return await find_latest(mcp_client, "rapid", "goal_analyses", {"user_id": user_id})
 
 
 async def run_goal_analysis(
@@ -200,13 +170,14 @@ async def run_goal_analysis(
     raw_query: str,
     profile: Dict[str, Any],
     mcp_client: Any,
+    llm_client: Any,
 ) -> Dict[str, Any]:
     """
     Run exhaustive Goal Analysis for user_id + raw_query.
 
     Steps:
     1. Check MongoDB cache — if a recent analysis for the same query exists, return it.
-    2. Call Gemini with the exhaustive prompt.
+    2. Call the LLM (Gemini, falling back to Groq) with the exhaustive prompt.
     3. Store result in MongoDB goal_analyses collection.
     4. Return the analysis document.
     """
@@ -214,41 +185,25 @@ async def run_goal_analysis(
     # 1. Check cache by query hash
     query_hash = hashlib.md5(f"{user_id}:{raw_query}".encode()).hexdigest()
 
-    try:
-        result = await mcp_client.session.call_tool("find", arguments={
-            "database": "rapid",
-            "collection": "goal_analyses",
-            "filter": {"user_id": user_id, "query_hash": query_hash},
-        })
-        cached = await _parse_mcp_docs(result)
-        if cached:
-            cached.sort(key=lambda x: x.get("created_at", ""), reverse=True)
-            print(f"[GoalAnalysis] Cache hit for user {user_id}")
-            return cached[0]
-    except Exception as e:
-        print(f"[GoalAnalysis] Cache check error: {e}")
+    cached = await find_latest(mcp_client, "rapid", "goal_analyses", {"user_id": user_id, "query_hash": query_hash})
+    if cached:
+        print(f"[GoalAnalysis] Cache hit for user {user_id}")
+        return cached
 
-    # 2. Call Gemini
+    # 2. Call LLM
     profile_context = _build_profile_context(profile)
     prompt = _GOAL_ANALYSIS_PROMPT.format(
         raw_query=raw_query,
         profile_context=profile_context,
     )
 
-    print(f"[GoalAnalysis] Calling Gemini for: {raw_query[:80]}")
+    print(f"[GoalAnalysis] Calling LLM for: {raw_query[:80]}")
 
     try:
-        response = client.models.generate_content(
-            model="gemini-2.5-flash-lite",
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-                response_schema=GoalAnalysisOutput,
-            ),
-        )
-        analysis_data = json.loads(response.text)
+        output = await llm_client.generate_structured(prompt, GoalAnalysisOutput)
+        analysis_data = output.model_dump()
     except Exception as e:
-        print(f"[GoalAnalysis] Gemini error: {e}")
+        print(f"[GoalAnalysis] LLM error: {e}")
         # Minimal safe fallback — preserves the query without fabricating requirements
         analysis_data = {
             "goal_type": "Higher Studies",
@@ -268,6 +223,7 @@ async def run_goal_analysis(
             "application_requirements": [],
             "scholarships": [],
             "additional_notes": ["Goal analysis failed. Please try again."],
+            "reasoning": "Goal analysis could not be completed due to an LLM error; this is a placeholder, not an analyzed result.",
         }
 
     # 3. Store in MongoDB

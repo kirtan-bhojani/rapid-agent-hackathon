@@ -1,10 +1,13 @@
+import asyncio
+
+from services.llm_client import LLMClient
 from google.genai import types
-from services.gemini_service import client
 
-response = client.models.generate_content(
-    model="gemini-2.5-flash-lite",
 
-    contents="""
+async def main():
+    llm = LLMClient()
+    text = await llm.generate_text(
+        """
 Find machine learning scholarships in Germany
 that are currently open.
 
@@ -13,14 +16,10 @@ Return:
 - deadline
 - source URL
 """,
-
-    config=types.GenerateContentConfig(
-        tools=[
-            types.Tool(
-                google_search=types.GoogleSearch()
-            )
-        ]
+        gemini_tools=[types.Tool(google_search=types.GoogleSearch())],
     )
-)
+    print(text)
 
-print(response)
+
+if __name__ == "__main__":
+    asyncio.run(main())

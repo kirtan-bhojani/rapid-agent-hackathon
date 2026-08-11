@@ -1,14 +1,7 @@
-import os
-from dotenv import load_dotenv, find_dotenv
 from pymongo import MongoClient
+from config import settings
 
-# This actively hunts for the .env file
-dotenv_path = find_dotenv()
-print(f"DEBUG: Found .env file at: {dotenv_path}")
-
-load_dotenv(dotenv_path)
-
-mongo_uri = os.getenv("MONGO_URI")
+mongo_uri = settings.MONGO_URI
 
 # If it's still None, we stop before PyMongo crashes
 if not mongo_uri:

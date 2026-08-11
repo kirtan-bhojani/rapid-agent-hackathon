@@ -9,7 +9,7 @@ import Opportunities from "./pages/Opportunities";
 import Roadmap from "./pages/Roadmap";
 import Goal from "./pages/Goal";
 import GapAnalysis from "./pages/GapAnalysis";
-import Chat from "./pages/Chat";
+import ApplicationAssistant from "./pages/ApplicationAssistant";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 
@@ -37,7 +37,7 @@ function App() {
 
         <Route path="/gap-analysis" element={<GapAnalysis />} />
 
-        <Route path="/chat" element={<Goal />} />
+        <Route path="/application-assistant" element={<ApplicationAssistant />} />
 
         <Route path="/login" element={<Login />} />
 

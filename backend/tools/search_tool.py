@@ -1,136 +1,78 @@
 # backend/tools/search_tool.py
-from services.gemini_service import client
-from google.genai import types
+"""
+Grounded web search via OpenAI's Responses API web_search tool.
+
+There is no Groq equivalent for search grounding, so every call here goes
+through llm_client.generate_text(..., web_search=True), which never falls
+over to Groq — if all OpenAI keys are exhausted, it raises
+LLMAllProvidersExhaustedError and callers surface an honest "search
+unavailable" signal. There is deliberately no hardcoded mock/fallback data:
+fabricating search results (universities, scholarships, jobs) would violate
+the project's "never invent fake data" principle.
+"""
+
+import asyncio
 import json
+
+from services.llm_client import LLMAllProvidersExhaustedError
+
+_SEARCH_UNAVAILABLE = {
+    "error": "search_unavailable",
+    "detail": "Live search is temporarily unavailable. Please try again shortly.",
+}
+
+# Bounds how many sub-queries within one category run concurrently, so one
+# user's request doesn't burn through the whole OpenAI key pool at once.
+_SUBQUERY_CONCURRENCY = 4
+
+
 # ---------------------------------------------------------------------------
 # Shared helpers
 # ---------------------------------------------------------------------------
-def _is_recitation(response):
-    """Check if the Gemini response was blocked due to RECITATION."""
+
+def _parse_response(text):
+    """Parse a plain-text LLM response into JSON. No mock fallback — a parse
+    failure is an honest, surfaced error, not a reason to fabricate data."""
+    if text is None:
+        return dict(_SEARCH_UNAVAILABLE)
     try:
-        if response and response.candidates:
-            finish_reason = response.candidates[0].finish_reason
-            # finish_reason can be an enum or string depending on SDK version
-            reason_str = str(finish_reason).upper()
-            if "RECITATION" in reason_str:
-                return True
-    except Exception:
-        pass
-    return False
-def _parse_response(response):
-    if response is None:
-        return {
-            "error": "Gemini request failed",
-            "raw": None
-        }
-    # --- RECITATION detection (before accessing .text) ---
-    if _is_recitation(response):
-        print("\nSEARCH AGENT: RECITATION BLOCKED")
-        return {
-            "error": "RECITATION_BLOCKED",
-            "raw": str(response)
-        }
-    try:
-        text = response.text
-        if not text:
-            return {
-                "error": "No text returned",
-                "raw": str(response)
-            }
         text = text.strip()
         if text.startswith("```json"):
             text = text.replace("```json", "").replace("```", "").strip()
+        elif text.startswith("```"):
+            text = text.replace("```", "").strip()
         return json.loads(text)
     except Exception as e:
         print(f"SEARCH PARSE ERROR: {e}")
-        pass
+        return {"error": "parse_error", "detail": str(e)}
 
-    # --- MOCK FALLBACK (for development/testing per API Strategy) ---
-    print("SEARCH AGENT: Using mock fixture fallback due to API limit/error.")
-    
-    # Check if this was likely a university/job/scholarship query and return appropriate mock
+
+async def _call_grounded(prompt, llm_client):
+    """Grounded (web search) generation. OpenAI-only — never falls over to
+    Groq. Returns the raw text, or None if unavailable."""
     try:
-        req_text = str(response.request) if hasattr(response, "request") else ""
-    except:
-        req_text = ""
-        
-    # Return a generic university mock
-    return [{
-        "name": "MSc in Artificial Intelligence",
-        "university": "Technical University of Munich (TUM)",
-        "country": "Germany",
-        "city": "Munich",
-        "link": "https://www.tum.de/en/studies/degree-programs/detail/artificial-intelligence-master-of-science-msc",
-        "source_type": "official",
-        "degree_level": "Master",
-        "eligible_nationals": "All",
-        "min_gpa": "3.0/4.0",
-        "ielts_min": "6.5",
-        "toefl_min": "90",
-        "gre_required": "No",
-        "qs_ranking": "#37",
-        "acceptance_rate": "12%",
-        "competitiveness": "High",
-        "required_documents": ["Transcript", "SOP", "CV", "Passport", "APS Certificate"],
-        "application_requirements": ["Essay", "Interview"],
-        "intake": "Winter 2027",
-        "deadline": "May 31, 2027",
-        "duration": "2 years",
-        "tuition": "Free",
-        "scholarships_available": "Yes",
-        "description": "TUM's MSc in Artificial Intelligence is a highly competitive, tuition-free program focusing on machine learning, robotics, and computer vision."
-    }, {
-        "name": "DAAD Development-Related Postgraduate Courses (EPOS)",
-        "provider": "DAAD",
-        "link": "https://www.daad.de",
-        "source_type": "government",
-        "eligible_nationalities": "Developing countries",
-        "eligible_degree_levels": "Master",
-        "eligible_fields": "STEM",
-        "max_age": "36",
-        "min_gpa": "Unknown",
-        "scholarship_type": "Both",
-        "funding_amount": "€934/month",
-        "covers_tuition": "Yes",
-        "covers_living": "Yes",
-        "duration": "2 years",
-        "required_documents": ["CV", "Motivation Letter", "Employer Reference"],
-        "deadline": "October 15, 2026",
-        "application_rounds": "Annual",
-        "description": "The DAAD EPOS scholarship provides full funding including a monthly stipend, travel allowance, and health insurance for students from developing nations pursuing development-related master's degrees in Germany."
-    }]
-def _call_gemini(prompt):
-    print("CALL GEMINI CALLED")
-    
-    try:
-        response = client.models.generate_content(
-            model="gemini-2.5-flash-lite",
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                tools=[
-                    types.Tool(
-                        google_search=types.GoogleSearch()
-                    )
-                ]
-            ),
-        )
-        return response
-    except Exception as e:
-        print("\nGEMINI ERROR:")
-        print(repr(e))
+        return await llm_client.generate_text(prompt, web_search=True)
+    except LLMAllProvidersExhaustedError as e:
+        print(f"SEARCH UNAVAILABLE: {e}")
         return None
-def _call_gemini_with_recitation_retry(prompt, retry_prompt):
-    """
-    Call Gemini with the primary prompt. If RECITATION is detected,
-    retry ONCE with the stricter retry_prompt. Never retries more than once.
-    """
-    response = _call_gemini(prompt)
-    if _is_recitation(response):
-        print("SEARCH AGENT: RECITATION detected on first attempt — retrying with stricter prompt")
-        response = _call_gemini(retry_prompt)
-        if _is_recitation(response):
-            print("SEARCH AGENT: RECITATION persisted after retry")
-    return response
+    except Exception as e:
+        print(f"\nSEARCH ERROR:\n{repr(e)}")
+        return None
+
+
+async def _call_with_retry(prompt, retry_prompt, llm_client):
+    """Call with the primary prompt; if parsing fails (e.g. the model
+    declined/blocked the first attempt), retry once with a stricter prompt.
+    Never retries more than once."""
+    text = await _call_grounded(prompt, llm_client)
+    parsed = _parse_response(text)
+    if isinstance(parsed, dict) and "error" in parsed and retry_prompt:
+        print("SEARCH AGENT: first attempt failed — retrying with stricter prompt")
+        text = await _call_grounded(retry_prompt, llm_client)
+        parsed = _parse_response(text)
+    return parsed
+
+
 def _deduplicate_results(results, key_field):
     """
     Remove duplicate entries from a list of dicts based on a key field.
@@ -144,7 +86,6 @@ def _deduplicate_results(results, key_field):
         if not isinstance(item, dict):
             unique.append(item)
             continue
-        # Build a dedup key from the key field, lowercased and stripped
         val = item.get(key_field, "").strip().lower()
         if val and val != "unknown" and val in seen:
             continue
@@ -152,35 +93,45 @@ def _deduplicate_results(results, key_field):
             seen.add(val)
         unique.append(item)
     return unique
-def _merge_results(*result_lists, key_field):
-    """
-    Merge multiple Gemini result sets, skipping error dicts.
-    Deduplicates by key_field.
-    """
-    merged = []
-    for result in result_lists:
-        if isinstance(result, list):
-            merged.extend(result)
-        # If it's an error dict, skip it silently
-    return _deduplicate_results(merged, key_field)
+
+
+async def _fetch_all_subqueries(sub_queries, prompt_fn, llm_client, retry_prompt_fn=None):
+    """Run every sub-query concurrently (bounded by a semaphore) and merge
+    the parsed results, skipping any that errored."""
+    semaphore = asyncio.Semaphore(_SUBQUERY_CONCURRENCY)
+
+    async def _run(sub_query):
+        async with semaphore:
+            prompt = prompt_fn(sub_query)
+            retry_prompt = retry_prompt_fn(sub_query) if retry_prompt_fn else None
+            if retry_prompt:
+                return await _call_with_retry(prompt, retry_prompt, llm_client)
+            text = await _call_grounded(prompt, llm_client)
+            return _parse_response(text)
+
+    results = await asyncio.gather(*(_run(q) for q in sub_queries))
+    all_results = []
+    last_error = None
+    for parsed in results:
+        if isinstance(parsed, list):
+            all_results.extend(parsed)
+        else:
+            last_error = parsed
+    return all_results, last_error
+
+
 # ---------------------------------------------------------------------------
 # search_universities — MULTI-QUERY for broad coverage
 # ---------------------------------------------------------------------------
-def search_universities(query):
-    # Build multiple sub-queries for broad coverage
-    queries = _build_university_queries(query)
-    all_results = []
-    for sub_query in queries:
-        prompt = _university_prompt(sub_query)
-        response = _call_gemini(prompt)
-        parsed = _parse_response(response)
-        if isinstance(parsed, list):
-            all_results.extend(parsed)
+async def search_universities(query, llm_client):
+    sub_queries = _build_university_queries(query)
+    all_results, last_error = await _fetch_all_subqueries(sub_queries, _university_prompt, llm_client)
     merged = _deduplicate_results(all_results, "name")
     if not merged:
-        # All queries failed — return last error
-        return parsed if not isinstance(parsed, list) else {"error": "No results found"}
+        return last_error or dict(_SEARCH_UNAVAILABLE)
     return merged
+
+
 def _build_university_queries(query):
     """
     Generate 3-4 sub-queries from the original query to maximize coverage.
@@ -191,6 +142,8 @@ def _build_university_queries(query):
         f"Affordable and mid-tier programs: {query}",
         f"Public universities and technical institutions: {query}",
     ]
+
+
 def _university_prompt(query):
     return f"""
 Search the web for university degree programs matching this query:
@@ -273,23 +226,26 @@ scholarships_available:
 description:
   Full text snippet from the source. Include all useful detail found.
 """
+
+
 # ---------------------------------------------------------------------------
-# search_scholarships — RECITATION-safe with retry + multi-query
+# search_scholarships — retry-on-failure + multi-query
 # ---------------------------------------------------------------------------
-def search_scholarships(query):
-    queries = _build_scholarship_queries(query)
-    all_results = []
-    for sub_query in queries:
-        prompt = _scholarship_prompt(sub_query)
-        retry_prompt = _scholarship_retry_prompt(sub_query)
-        response = _call_gemini_with_recitation_retry(prompt, retry_prompt)
-        parsed = _parse_response(response)
-        if isinstance(parsed, list):
-            all_results.extend(parsed)
+async def search_scholarships(query, llm_client):
+    sub_queries = _build_scholarship_queries(query)
+
+    def retry_fn(sub_query):
+        return _scholarship_retry_prompt(sub_query)
+
+    all_results, last_error = await _fetch_all_subqueries(
+        sub_queries, _scholarship_prompt, llm_client, retry_prompt_fn=retry_fn,
+    )
     merged = _deduplicate_results(all_results, "name")
     if not merged:
-        return parsed if not isinstance(parsed, list) else {"error": "No results found"}
+        return last_error or dict(_SEARCH_UNAVAILABLE)
     return merged
+
+
 def _build_scholarship_queries(query):
     """
     Generate sub-queries for broad scholarship coverage.
@@ -300,6 +256,8 @@ def _build_scholarship_queries(query):
         f"Foundation and private scholarships: {query}",
         f"Merit-based and need-based scholarships: {query}",
     ]
+
+
 def _scholarship_prompt(query):
     return f"""
 Search the web for scholarships matching this query:
@@ -378,9 +336,12 @@ description:
   A BRIEF, ORIGINAL summary in your own words. Do NOT copy text from any source.
   Summarize the scholarship purpose, key requirements, and benefits in 2-3 sentences.
 """
+
+
 def _scholarship_retry_prompt(query):
     """
-    Stricter paraphrasing prompt used when the first attempt triggers RECITATION.
+    Stricter paraphrasing prompt used when the first attempt fails to parse
+    (e.g. the model declined to reproduce source text).
     """
     return f"""
 Search the web for scholarships matching this query:
@@ -437,22 +398,20 @@ Field rules:
 - application_rounds: "Annual" | "Twice/year" | "Rolling" | "Unknown"
 - description: 1-2 sentence ORIGINAL summary. Do NOT copy from any source.
 """
+
+
 # ---------------------------------------------------------------------------
 # search_jobs — MULTI-QUERY for broad coverage
 # ---------------------------------------------------------------------------
-def search_jobs(query):
-    queries = _build_job_queries(query)
-    all_results = []
-    for sub_query in queries:
-        prompt = _job_prompt(sub_query)
-        response = _call_gemini(prompt)
-        parsed = _parse_response(response)
-        if isinstance(parsed, list):
-            all_results.extend(parsed)
+async def search_jobs(query, llm_client):
+    sub_queries = _build_job_queries(query)
+    all_results, last_error = await _fetch_all_subqueries(sub_queries, _job_prompt, llm_client)
     merged = _deduplicate_results(all_results, "title")
     if not merged:
-        return parsed if not isinstance(parsed, list) else {"error": "No results found"}
+        return last_error or dict(_SEARCH_UNAVAILABLE)
     return merged
+
+
 def _build_job_queries(query):
     """
     Generate sub-queries for broad job coverage.
@@ -463,6 +422,8 @@ def _build_job_queries(query):
         f"Startup and mid-size company jobs: {query}",
         f"Remote and hybrid opportunities: {query}",
     ]
+
+
 def _job_prompt(query):
     return f"""
 Search the web for job postings matching this query:
@@ -530,22 +491,20 @@ posted_date:
 description:
   Full text snippet. Include responsibilities, requirements, and any benefits found.
 """
+
+
 # ---------------------------------------------------------------------------
 # search_internships — MULTI-QUERY for broad coverage
 # ---------------------------------------------------------------------------
-def search_internships(query):
-    queries = _build_internship_queries(query)
-    all_results = []
-    for sub_query in queries:
-        prompt = _internship_prompt(sub_query)
-        response = _call_gemini(prompt)
-        parsed = _parse_response(response)
-        if isinstance(parsed, list):
-            all_results.extend(parsed)
+async def search_internships(query, llm_client):
+    sub_queries = _build_internship_queries(query)
+    all_results, last_error = await _fetch_all_subqueries(sub_queries, _internship_prompt, llm_client)
     merged = _deduplicate_results(all_results, "title")
     if not merged:
-        return parsed if not isinstance(parsed, list) else {"error": "No results found"}
+        return last_error or dict(_SEARCH_UNAVAILABLE)
     return merged
+
+
 def _build_internship_queries(query):
     """
     Generate sub-queries for broad internship coverage.
@@ -556,6 +515,8 @@ def _build_internship_queries(query):
         f"Industry and startup internships: {query}",
         f"Paid internships with stipend: {query}",
     ]
+
+
 def _internship_prompt(query):
     return f"""
 Search the web for internship opportunities matching this query:
@@ -618,4 +579,3 @@ deadline:
 description:
   Full text snippet. Include all eligibility and role details found.
 """
-    return _parse_response(response)

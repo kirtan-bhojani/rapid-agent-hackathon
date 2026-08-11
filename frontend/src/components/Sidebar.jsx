@@ -8,6 +8,7 @@ const NAV_ITEMS = [
     { to: "/gap-analysis",  icon: "📉", label: "Gap Analysis"   },
     { to: "/roadmap",       icon: "🗺️", label: "Roadmap"        },
     { to: "/opportunities", icon: "🔍", label: "Opportunities"  },
+    { to: "/application-assistant", icon: "📝", label: "Application Assistant" },
     { to: "/documents",     icon: "📄", label: "Documents"      },
     { to: "/profile",       icon: "👤", label: "Profile"        },
 ];

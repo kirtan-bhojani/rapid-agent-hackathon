@@ -5,6 +5,7 @@ Replaces the original generic pipeline with a goal-driven, justified roadmap.
 
 Every roadmap step now includes:
   - reason: WHY this step exists (tied to a specific gap)
+  - reasoning: WHY this step's priority/ordering/effort estimate was chosen this way
   - estimated_effort: how long this realistically takes
   - dependencies: what must be done before this
   - priority: "critical" | "high" | "medium" | "low"
@@ -12,24 +13,17 @@ Every roadmap step now includes:
 
 Public API
 ──────────
-    run_career_pipeline(user_id, query, profile, mcp_client) → dict
+    run_career_pipeline(user_id, query, profile, mcp_client, llm_client) → dict
         Goal Analysis → Gap Analysis → Justified Roadmap → persist → return
 """
 
 from __future__ import annotations
 
-import json
 import uuid
 import datetime
 from typing import Dict, Any, List, Optional
-from google import genai
-from google.genai import types
-from pydantic import BaseModel
-import os
-from dotenv import load_dotenv
 
-load_dotenv()
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+from pydantic import BaseModel
 
 
 # =====================================================================
@@ -41,11 +35,19 @@ class RoadmapStep(BaseModel):
     title: str
     description: str           # Specific, actionable description
     reason: str                # WHY: which gap this addresses
+    reasoning: str              # WHY: why this priority/ordering/effort estimate was chosen
     estimated_effort: str      # e.g. "2–3 weeks", "1 day", "Ongoing"
     dependencies: List[str]    # Titles of steps that must complete first
     priority: str              # "critical" | "high" | "medium" | "low"
     deadline_hint: str         # e.g. "Before October 2025", "No fixed deadline"
     status: str                # Always "Pending" on creation
+
+
+class RoadmapList(BaseModel):
+    """Wraps the bare list[RoadmapStep] so the schema has a top-level object —
+    Gemini's response_schema handles bare lists natively, but Groq's JSON mode
+    (used as this call's fallback path) has no top-level-array equivalent."""
+    steps: List[RoadmapStep]
 
 
 # =====================================================================
@@ -68,6 +70,9 @@ CRITICAL RULES:
 7. deadline_hint: if you know a realistic deadline, state it. If not, say "No fixed deadline" or "Check university portal".
 8. estimated_effort: be realistic. "Register for IELTS" → "30 minutes". "Prepare for IELTS" → "4–8 weeks of study".
 9. Never fabricate specific university deadlines. Use approximate ranges like "typically October–January".
+10. "reasoning" (distinct from "reason"): explain WHY this step's priority/ordering/effort estimate
+    was chosen the way it was — e.g. why it's "critical" not "high", why it comes before/after
+    other steps, why the effort estimate is what it is.
 
 GOAL: {raw_query}
 DESTINATION: {destination}
@@ -82,32 +87,13 @@ Missing Critical Items: {missing_critical}
 Missing Recommended Items: {missing_recommended}
 Partial Items: {partial}
 
-Generate a complete step-by-step roadmap. Start with the most critical/time-sensitive steps.
+Generate a complete step-by-step roadmap ("steps" list). Start with the most critical/time-sensitive steps.
 """
 
 
 # =====================================================================
 #  INTERNAL HELPERS
 # =====================================================================
-
-async def _parse_mcp_docs(result) -> list:
-    docs = []
-    for c in result.content:
-        if c.type == "text":
-            text = c.text.strip()
-            start = next((i for i, ch in enumerate(text) if ch in "[{"), -1)
-            end = next((i for i in range(len(text) - 1, -1, -1) if text[i] in "]}"), -1)
-            if start != -1 and end != -1 and start < end:
-                try:
-                    parsed = json.loads(text[start : end + 1])
-                    if isinstance(parsed, list):
-                        docs.extend(parsed)
-                    elif isinstance(parsed, dict):
-                        docs.append(parsed)
-                except Exception:
-                    pass
-    return docs
-
 
 def _fmt_gap_items(items: list) -> str:
     if not items:
@@ -125,6 +111,7 @@ async def generate_justified_roadmap(
     goal_analysis: Dict[str, Any],
     gap_data: Dict[str, Any],
     raw_query: str,
+    llm_client: Any,
 ) -> List[Dict[str, Any]]:
     """Generate a justified roadmap from goal analysis + gap analysis."""
 
@@ -141,17 +128,10 @@ async def generate_justified_roadmap(
     )
 
     try:
-        res = client.models.generate_content(
-            model="gemini-2.5-flash-lite",
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-                response_schema=list[RoadmapStep],
-            ),
-        )
-        return json.loads(res.text)
+        output = await llm_client.generate_structured(prompt, RoadmapList)
+        return [step.model_dump() for step in output.steps]
     except Exception as e:
-        print(f"[Roadmap] Gemini error: {e}")
+        print(f"[Roadmap] LLM error: {e}")
         return []
 
 
@@ -164,6 +144,7 @@ async def run_career_pipeline(
     query: str,
     profile: Dict[str, Any],
     mcp_client: Any,
+    llm_client: Any,
     goal_analysis_doc: Optional[Dict[str, Any]] = None,
     gap_analysis_doc: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
@@ -202,7 +183,7 @@ async def run_career_pipeline(
         "message": "Generating personalised, justified roadmap based on gap analysis...",
     })
 
-    roadmap = await generate_justified_roadmap(goal_analysis, gap_data, query)
+    roadmap = await generate_justified_roadmap(goal_analysis, gap_data, query, llm_client)
 
     if not roadmap:
         trace_logs.append({"type": "agent", "message": "Roadmap generation failed. Using empty plan."})

@@ -18,7 +18,6 @@ from __future__ import annotations
 import json
 from pypdf import PdfReader
 
-from services.gemini_service import client
 from database import save_user_profile
 
 
@@ -264,17 +263,15 @@ LOR:
 #  INTERNAL HELPERS
 # =====================================================================
 
-def _call_gemini(prompt: str) -> str:
-    """Send a prompt to Gemini and return the raw text response."""
-    from google.genai import types
-    response = client.models.generate_content(
-        model="gemini-2.5-flash-lite",
-        contents=prompt,
-        config=types.GenerateContentConfig(
-            response_mime_type="application/json"
-        )
-    )
-    return response.text
+async def _call_gemini(prompt: str, llm_client) -> str:
+    """Send a prompt to the LLM and return the raw text response.
+
+    No response_schema here — the 6 document-type prompts are unconstrained
+    free-form JSON (extraction, not judgment), so generate_text is used
+    rather than generate_structured. Promoting these to strict schemas is
+    a reasonable future improvement, not required for this pass.
+    """
+    return await llm_client.generate_text(prompt, temperature=0.1)
 
 
 def _parse_gemini_response(raw: str) -> dict:
@@ -318,16 +315,16 @@ def extract_pdf_text(pdf_path: str) -> str:
     return text
 
 
-def parse_resume_text(text: str) -> str:
-    """Call Gemini with the resume prompt and return raw response. Unchanged."""
+async def parse_resume_text(text: str, llm_client) -> str:
+    """Call the LLM with the resume prompt and return raw response."""
     prompt = _PROMPTS["resume"].format(text=text)
-    return _call_gemini(prompt)
+    return await _call_gemini(prompt, llm_client)
 
 
-def parse_resume(pdf_path: str) -> dict:
-    """Extract text from PDF and parse as resume. Unchanged."""
+async def parse_resume(pdf_path: str, llm_client) -> dict:
+    """Extract text from PDF and parse as resume."""
     text = extract_pdf_text(pdf_path)
-    raw = parse_resume_text(text)
+    raw = await parse_resume_text(text, llm_client)
     return _parse_gemini_response(raw)
 
 
@@ -335,9 +332,9 @@ def parse_resume(pdf_path: str) -> dict:
 #  NEW GENERIC API
 # =====================================================================
 
-def parse_document_text(document_type: str, text: str) -> dict:
+async def parse_document_text(document_type: str, text: str, llm_client) -> dict:
     """
-    Select the correct Gemini prompt for *document_type*, call the model,
+    Select the correct prompt for *document_type*, call the LLM,
     and return the parsed dict.
 
     Parameters
@@ -356,18 +353,18 @@ def parse_document_text(document_type: str, text: str) -> dict:
         }
 
     prompt = _PROMPTS[document_type].format(text=text)
-    raw = _call_gemini(prompt)
+    raw = await _call_gemini(prompt, llm_client)
     return _parse_gemini_response(raw)
 
 
-def process_document(document_type: str, pdf_path: str, user_id: str) -> dict:
+async def process_document(document_type: str, pdf_path: str, user_id: str, llm_client) -> dict:
     """
     Full extraction pipeline for any supported document type.
 
     Steps
     ─────
     1. Extract raw text from the PDF.
-    2. Call parse_document_text() to get structured data from Gemini.
+    2. Call parse_document_text() to get structured data from the LLM.
     3. Split into public / sensitive buckets.
     4. Save both buckets to MongoDB via save_user_profile().
     5. Return the full extracted data dict.
@@ -381,13 +378,13 @@ def process_document(document_type: str, pdf_path: str, user_id: str) -> dict:
     # 1. Extract text
     text = extract_pdf_text(pdf_path)
 
-    # 2. Parse via Gemini
-    data = parse_document_text(document_type, text)
+    # 2. Parse via LLM
+    data = await parse_document_text(document_type, text, llm_client)
 
-    # NEW: stop if Gemini failed
+    # Stop if the LLM call failed
     if "error" in data:
         return data
-    
+
     # 3. Split public / sensitive
     public_data, sensitive_data = _split_data(document_type, data)
 
@@ -403,9 +400,9 @@ def process_document(document_type: str, pdf_path: str, user_id: str) -> dict:
 #  BACKWARD-COMPATIBLE WRAPPER
 # =====================================================================
 
-def process_resume(pdf_path: str, user_id: str) -> dict:
+async def process_resume(pdf_path: str, user_id: str, llm_client) -> dict:
     """
     Thin wrapper around process_document() for backward compatibility.
     All existing calls to process_resume() continue to work unchanged.
     """
-    return process_document("resume", pdf_path, user_id)
+    return await process_document("resume", pdf_path, user_id, llm_client)

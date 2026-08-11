@@ -8,32 +8,12 @@ No hardcoded values. Everything is derived from real MongoDB data.
 
 from fastapi import APIRouter, HTTPException, Depends
 from typing import Any
-import json
 
 from services.profile_service import get_unified_profile
+from utils.mcp_helpers import find_latest
 from dependencies import get_mcp_client
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
-
-
-async def _parse_mcp_docs(result) -> list:
-    """Extract a list of docs from MCP tool result."""
-    docs = []
-    for c in result.content:
-        if c.type == "text":
-            text = c.text.strip()
-            start = next((i for i, ch in enumerate(text) if ch in "[{"), -1)
-            end = next((i for i in range(len(text) - 1, -1, -1) if text[i] in "]}"), -1)
-            if start != -1 and end != -1 and start < end:
-                try:
-                    parsed = json.loads(text[start : end + 1])
-                    if isinstance(parsed, list):
-                        docs.extend(parsed)
-                    elif isinstance(parsed, dict):
-                        docs.append(parsed)
-                except Exception:
-                    pass
-    return docs
 
 
 def _compute_profile_completion(profile: dict) -> int:
@@ -131,40 +111,21 @@ async def get_dashboard(user_id: str, mcp_client: Any = Depends(get_mcp_client))
     next_critical_action = None
     goal_summary = None
 
-    try:
-        plan_result = await mcp_client.session.call_tool("find", arguments={
-            "database": "rapid",
-            "collection": "career_plans",
-            "filter": {"user_id": user_id},
-        })
-        plans = await _parse_mcp_docs(plan_result)
-        if plans:
-            plans.sort(key=lambda x: x.get("created_at", ""), reverse=True)
-            latest_plan = plans[0]
-            roadmap = latest_plan.get("roadmap", [])
-            roadmap_progress = _compute_roadmap_progress(roadmap)
-            upcoming_deadlines = _extract_upcoming_deadlines(roadmap)
-            goal_summary = latest_plan.get("goal", {})
-            next_critical_action = latest_plan.get("gaps", {}).get("next_critical_action")
-    except Exception as e:
-        print(f"[Dashboard] Career plan fetch error: {e}")
+    latest_plan = await find_latest(mcp_client, "rapid", "career_plans", {"user_id": user_id})
+    if latest_plan:
+        roadmap = latest_plan.get("roadmap", [])
+        roadmap_progress = _compute_roadmap_progress(roadmap)
+        upcoming_deadlines = _extract_upcoming_deadlines(roadmap)
+        goal_summary = latest_plan.get("goal", {})
+        next_critical_action = latest_plan.get("gaps", {}).get("next_critical_action")
 
     # 3. Fetch gap score from gap_analyses
     gap_score = None
-    try:
-        gap_result = await mcp_client.session.call_tool("find", arguments={
-            "database": "rapid",
-            "collection": "gap_analyses",
-            "filter": {"user_id": user_id},
-        })
-        gap_docs = await _parse_mcp_docs(gap_result)
-        if gap_docs:
-            gap_docs.sort(key=lambda x: x.get("created_at", ""), reverse=True)
-            gap_score = gap_docs[0].get("gap_analysis", {}).get("gap_score")
-            if next_critical_action is None:
-                next_critical_action = gap_docs[0].get("gap_analysis", {}).get("next_critical_action")
-    except Exception as e:
-        print(f"[Dashboard] Gap analysis fetch error: {e}")
+    gap_doc = await find_latest(mcp_client, "rapid", "gap_analyses", {"user_id": user_id})
+    if gap_doc:
+        gap_score = gap_doc.get("gap_analysis", {}).get("gap_score")
+        if next_critical_action is None:
+            next_critical_action = gap_doc.get("gap_analysis", {}).get("next_critical_action")
 
     return {
         "status": "success",

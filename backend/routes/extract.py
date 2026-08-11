@@ -1,9 +1,11 @@
 import os
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
+from typing import Any
 
 from services.parser_service import process_document
+from dependencies import get_llm_client
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -52,7 +54,7 @@ def _validate_request(req: ExtractRequest) -> None:
 # ── Route ─────────────────────────────────────────────────────────────────────
 
 @router.post("/")
-def extract_document(req: ExtractRequest):
+async def extract_document(req: ExtractRequest, llm_client: Any = Depends(get_llm_client)):
     """
     Extract structured data from an already-uploaded document.
 
@@ -65,7 +67,7 @@ def extract_document(req: ExtractRequest):
     _validate_request(req)
 
     # 2. Dispatch to the correct processor
-    profile = process_document(req.document_type, req.file_path, req.user_id)
+    profile = await process_document(req.document_type, req.file_path, req.user_id, llm_client)
 
     # 3. Surface a parsing-level error returned by process_resume itself
     #    (parser_service returns {"error": ..., "raw": ...} on bad Gemini output)

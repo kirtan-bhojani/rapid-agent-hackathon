@@ -99,6 +99,8 @@ def _merge_passport(profile: dict, doc: dict) -> None:
         personal["nationality"] = doc.get("nationality", "")
     if not personal["date_of_birth"]:
         personal["date_of_birth"] = doc.get("date_of_birth", "")
+    if not personal.get("passport_expiry_date"):
+        personal["passport_expiry_date"] = doc.get("expiry_date", "")
 
 
 def _merge_ielts(profile: dict, doc: dict) -> None:
@@ -168,6 +170,7 @@ def _blank_profile(user_id: str) -> dict:
             "full_name":     "",
             "nationality":   "",
             "date_of_birth": "",
+            "passport_expiry_date": "",
         },
         "academic": {
             "institution":     "",

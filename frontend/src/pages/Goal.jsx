@@ -30,6 +30,7 @@ const REQ_GROUPS = [
 ];
 
 function TraceItem({ trace }) {
+    if (!trace) return null;
     const icons = { agent: "🤖", mcp: "🔌", error: "⚠️" };
     return (
         <div className={`trace-item trace-item--${trace.type || "agent"}`}>

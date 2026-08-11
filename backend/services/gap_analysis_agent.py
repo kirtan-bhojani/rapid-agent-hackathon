@@ -8,7 +8,7 @@ This is the central feature of RAPID. It answers: "What exactly am I missing?"
 
 Public API
 ──────────
-    run_gap_analysis(user_id, profile, goal_analysis, mcp_client) → dict
+    run_gap_analysis(user_id, profile, goal_analysis_doc, mcp_client, llm_client) → dict
         Compares profile vs goal requirements. Stores result in MongoDB.
         Returns the gap_analysis document.
 
@@ -18,19 +18,14 @@ Public API
 
 from __future__ import annotations
 
-import json
 import datetime
 import uuid
 import hashlib
 from typing import Any, Dict, Optional, List
-from google import genai
-from google.genai import types
-from pydantic import BaseModel
-import os
-from dotenv import load_dotenv
 
-load_dotenv()
-client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+from pydantic import BaseModel
+
+from utils.mcp_helpers import find_latest
 
 
 # =====================================================================
@@ -54,6 +49,7 @@ class GapAnalysisOutput(BaseModel):
     gap_score: int                     # 0-100, higher = closer to goal (computed from completed vs total)
     summary: str                       # One paragraph summarising the gap situation
     next_critical_action: str          # Single most important next step
+    reasoning: str                     # WHY this gap_score / next_critical_action was chosen
 
 
 # =====================================================================
@@ -105,6 +101,9 @@ Compute gap_score as: round(completed_count / max(total_requirements_count, 1) *
 
 next_critical_action: the single most important mandatory item to work on first.
 
+Also provide a top-level "reasoning" field: explain WHY the gap_score was computed this way
+and WHY next_critical_action was chosen over other missing_critical items.
+
 Return ALL fields for EVERY requirement. Be thorough. Do not omit any requirement from the goal analysis.
 """
 
@@ -112,25 +111,6 @@ Return ALL fields for EVERY requirement. Be thorough. Do not omit any requiremen
 # =====================================================================
 #  INTERNAL HELPERS
 # =====================================================================
-
-async def _parse_mcp_docs(result) -> list:
-    docs = []
-    for c in result.content:
-        if c.type == "text":
-            text = c.text.strip()
-            start = next((i for i, ch in enumerate(text) if ch in "[{"), -1)
-            end = next((i for i in range(len(text) - 1, -1, -1) if text[i] in "]}"), -1)
-            if start != -1 and end != -1 and start < end:
-                try:
-                    parsed = json.loads(text[start : end + 1])
-                    if isinstance(parsed, list):
-                        docs.extend(parsed)
-                    elif isinstance(parsed, dict):
-                        docs.append(parsed)
-                except Exception:
-                    pass
-    return docs
-
 
 def _fmt_requirements(items: list) -> str:
     """Format a list of requirement dicts into a readable string for the prompt."""
@@ -152,19 +132,7 @@ def _fmt_requirements(items: list) -> str:
 
 async def get_cached_gap_analysis(user_id: str, mcp_client: Any) -> Optional[Dict[str, Any]]:
     """Return the latest stored gap analysis for user_id, or None."""
-    try:
-        result = await mcp_client.session.call_tool("find", arguments={
-            "database": "rapid",
-            "collection": "gap_analyses",
-            "filter": {"user_id": user_id},
-        })
-        docs = await _parse_mcp_docs(result)
-        if docs:
-            docs.sort(key=lambda x: x.get("created_at", ""), reverse=True)
-            return docs[0]
-    except Exception as e:
-        print(f"[GapAnalysis] Cache fetch error: {e}")
-    return None
+    return await find_latest(mcp_client, "rapid", "gap_analyses", {"user_id": user_id})
 
 
 async def run_gap_analysis(
@@ -172,6 +140,7 @@ async def run_gap_analysis(
     profile: Dict[str, Any],
     goal_analysis_doc: Dict[str, Any],
     mcp_client: Any,
+    llm_client: Any,
 ) -> Dict[str, Any]:
     """
     Run Gap Analysis: compare profile vs goal requirements.
@@ -179,7 +148,7 @@ async def run_gap_analysis(
     Steps:
     1. Build cache key from user_id + goal query hash
     2. If cache is fresh (< 24h), return cached
-    3. Call Gemini with full profile + goal analysis
+    3. Call the LLM with full profile + goal analysis
     4. Store result in MongoDB gap_analyses
     5. Return the gap analysis document
     """
@@ -190,29 +159,20 @@ async def run_gap_analysis(
 
     # 1. Check cache
     cache_key = hashlib.md5(f"{user_id}:{query_hash}:gap".encode()).hexdigest()
-    try:
-        result = await mcp_client.session.call_tool("find", arguments={
-            "database": "rapid",
-            "collection": "gap_analyses",
-            "filter": {"user_id": user_id, "cache_key": cache_key},
-        })
-        cached_docs = await _parse_mcp_docs(result)
-        if cached_docs:
-            cached_docs.sort(key=lambda x: x.get("created_at", ""), reverse=True)
-            latest = cached_docs[0]
-            # Fresh if < 24h
-            try:
-                created = datetime.datetime.fromisoformat(latest["created_at"].replace("Z", "+00:00"))
-                age = (datetime.datetime.now(datetime.timezone.utc) - created).total_seconds()
-                if age < 86400:
-                    print(f"[GapAnalysis] Cache hit for user {user_id}")
-                    return latest
-            except Exception:
-                pass
-    except Exception as e:
-        print(f"[GapAnalysis] Cache check error: {e}")
+    latest = await find_latest(mcp_client, "rapid", "gap_analyses", {"user_id": user_id, "cache_key": cache_key})
+    if latest:
+        # Fresh if < 24h
+        try:
+            created = datetime.datetime.fromisoformat(latest["created_at"].replace("Z", "+00:00"))
+            age = (datetime.datetime.now(datetime.timezone.utc) - created).total_seconds()
+            if age < 86400:
+                print(f"[GapAnalysis] Cache hit for user {user_id}")
+                return latest
+        except Exception:
+            pass
 
     # 2. Build prompt
+    import json
     prompt = _GAP_ANALYSIS_PROMPT.format(
         profile_json=json.dumps(profile, indent=2),
         raw_query=raw_query,
@@ -230,20 +190,13 @@ async def run_gap_analysis(
         application_requirements=_fmt_requirements(goal_analysis.get("application_requirements", [])),
     )
 
-    print(f"[GapAnalysis] Calling Gemini for user {user_id}")
+    print(f"[GapAnalysis] Calling LLM for user {user_id}")
 
     try:
-        response = client.models.generate_content(
-            model="gemini-2.5-flash-lite",
-            contents=prompt,
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-                response_schema=GapAnalysisOutput,
-            ),
-        )
-        gap_data = json.loads(response.text)
+        output = await llm_client.generate_structured(prompt, GapAnalysisOutput)
+        gap_data = output.model_dump()
     except Exception as e:
-        print(f"[GapAnalysis] Gemini error: {e}")
+        print(f"[GapAnalysis] LLM error: {e}")
         gap_data = {
             "completed": [],
             "missing_critical": [],
@@ -252,6 +205,7 @@ async def run_gap_analysis(
             "gap_score": 0,
             "summary": "Gap analysis could not be completed. Please try again.",
             "next_critical_action": "Retry gap analysis.",
+            "reasoning": "Gap analysis could not be completed due to an LLM error; this is a placeholder, not an analyzed result.",
         }
 
     # 3. Store in MongoDB

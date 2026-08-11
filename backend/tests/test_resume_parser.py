@@ -1,5 +1,6 @@
 import sys
 import os
+import asyncio
 
 sys.path.append(
     os.path.dirname(
@@ -8,9 +9,14 @@ sys.path.append(
 )
 
 from services.parser_service import parse_resume
+from services.llm_client import LLMClient
 
-result = parse_resume(
-    "uploads/sample_resume.pdf"
-)
 
-print(result)
+async def main():
+    llm = LLMClient()
+    result = await parse_resume("uploads/sample_resume.pdf", llm)
+    print(result)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

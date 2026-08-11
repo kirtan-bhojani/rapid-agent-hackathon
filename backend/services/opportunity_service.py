@@ -1,6 +1,9 @@
 # backend/services/opportunity_service.py
 
+import datetime
+import hashlib
 import json
+import uuid
 from typing import Dict, Any, List
 
 from tools.search_tool import (
@@ -9,7 +12,7 @@ from tools.search_tool import (
     search_jobs,
     search_internships,
 )
-from services.gemini_service import client
+from utils.mcp_helpers import find_latest
 
 
 # ---------------------------------------------------------------------------
@@ -67,11 +70,12 @@ def generate_queries(goal: Dict[str, Any]) -> Dict[str, str]:
 
 # ---------------------------------------------------------------------------
 # fetch_results
-# Calls search_tool functions. Skips error dicts silently.
+# Calls search_tool functions concurrently. Skips error dicts silently.
 # search_tool handles multi-query and deduplication internally.
 # ---------------------------------------------------------------------------
 
-def fetch_results(queries: Dict[str, str]) -> Dict[str, List]:
+async def fetch_results(queries: Dict[str, str], llm_client: Any) -> Dict[str, List]:
+    import asyncio
 
     search_map = {
         "universities": search_universities,
@@ -80,63 +84,19 @@ def fetch_results(queries: Dict[str, str]) -> Dict[str, List]:
         "internships":  search_internships,
     }
 
-    raw_results = {}
+    active = [(result_type, query, search_map[result_type]) for result_type, query in queries.items() if query and result_type in search_map]
 
-    for result_type, query in queries.items():
-
-        if not query:
-            continue
-
-        fn = search_map.get(result_type)
-        if not fn:
-            continue
-
+    async def _run(result_type, query, fn):
         print(f"\nSEARCH: {result_type} — {query}")
-        result = fn(query)
-
+        result = await fn(query, llm_client)
         if isinstance(result, list):
-            raw_results[result_type] = result
             print(f"  → {len(result)} results")
-        else:
-            # Error dict from search_tool — log and skip
-            print(f"  → SEARCH ERROR: {result.get('error', 'Unknown error')}")
-            raw_results[result_type] = []
+            return result_type, result
+        print(f"  → SEARCH ERROR: {result.get('error', 'Unknown error')}")
+        return result_type, []
 
-    return raw_results
-
-
-# ---------------------------------------------------------------------------
-# _parse_gemini_response
-# Same pattern as goal_agent.py and search_tool.py.
-# ---------------------------------------------------------------------------
-
-def _parse_gemini_response(response) -> Dict[str, Any]:
-
-    if response is None:
-        return {"error": "Gemini request failed", "raw": None}
-
-    try:
-
-        text = response.text
-
-        if not text:
-            return {"error": "No text returned", "raw": str(response)}
-
-        text = text.strip()
-
-        if text.startswith("```json"):
-            text = text.replace("```json", "").replace("```", "").strip()
-        elif text.startswith("```"):
-            text = text.replace("```", "").strip()
-
-        return json.loads(text)
-
-    except json.JSONDecodeError as e:
-        print(f"JSON ERROR: {e}")
-        return {"error": str(e), "raw": getattr(response, "text", None)}
-
-    except Exception as e:
-        return {"error": str(e), "raw": getattr(response, "text", None)}
+    results = await asyncio.gather(*(_run(rt, q, fn) for rt, q, fn in active))
+    return {result_type: items for result_type, items in results}
 
 
 # ---------------------------------------------------------------------------
@@ -165,14 +125,41 @@ STUDENT PROFILE:
 
 # ---------------------------------------------------------------------------
 # classify_opportunities
-# Single Gemini call. Classifies every result into one of 5 categories
+# Single LLM call. Classifies every result into one of 5 categories
 # or excludes it via a hard disqualifier. Never discards for soft signals.
+#
+# Note on schema: opportunities carry heterogeneous fields depending on
+# category (university vs scholarship vs job vs internship). A strict
+# Gemini response_schema would force the model to emit ONLY the declared
+# properties, silently dropping the original search-result fields (link,
+# deadline, etc.) that the Opportunities page needs. So this call uses
+# generate_text + manual JSON parsing (preserving every original field)
+# rather than generate_structured, with a "reasoning" field requested
+# explicitly in the prompt for explainability.
 # ---------------------------------------------------------------------------
 
-def classify_opportunities(
+def _parse_llm_json(text) -> Dict[str, Any]:
+    if not text:
+        return {"error": "No text returned"}
+    try:
+        text = text.strip()
+        if text.startswith("```json"):
+            text = text.replace("```json", "").replace("```", "").strip()
+        elif text.startswith("```"):
+            text = text.replace("```", "").strip()
+        return json.loads(text)
+    except json.JSONDecodeError as e:
+        print(f"JSON ERROR: {e}")
+        return {"error": str(e)}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+async def classify_opportunities(
     raw_results: Dict[str, List],
     profile: Dict[str, Any],
     goal: Dict[str, Any],
+    llm_client: Any,
 ) -> Dict[str, Any]:
 
     profile_context = _build_profile_context(profile)
@@ -360,6 +347,9 @@ Every opportunity must appear in exactly one category, or be excluded.
 Every item must contain ALL original fields from the search result
 PLUS the 5 classification fields: status, fit_reason, known_gaps, unknown_requirements, gap_summary.
 
+Also add a top-level "reasoning" field: 1-2 sentences explaining the overall classification
+pass — e.g. how many were excluded and why, and what pattern (if any) drove the tier split.
+
 {{
   "eligible": {{
     "safe":      [],
@@ -370,50 +360,57 @@ PLUS the 5 classification fields: status, fit_reason, known_gaps, unknown_requir
     "near_eligible":     [],
     "long_term_stretch": []
   }},
-  "excluded_count": 0
+  "excluded_count": 0,
+  "reasoning": ""
 }}
 """
 
-    print("\nOPPORTUNITY AGENT: Classifying results with Gemini...")
+    print("\nOPPORTUNITY AGENT: Classifying results with LLM...")
+
+    empty_result = {
+        "eligible": {"safe": [], "target": [], "ambitious": []},
+        "growth":   {"near_eligible": [], "long_term_stretch": []},
+        "excluded_count": 0,
+        "reasoning": "",
+    }
 
     try:
-
-        response = client.models.generate_content(
-            model="gemini-2.5-flash-lite",
-            contents=prompt,
-        )
-
+        text = await llm_client.generate_text(prompt)
     except Exception as e:
+        print(f"LLM ERROR: {repr(e)}")
+        return {**empty_result, "error": str(e)}
 
-        print(f"GEMINI ERROR: {repr(e)}")
-
-        return {
-            "eligible": {"safe": [], "target": [], "ambitious": []},
-            "growth":   {"near_eligible": [], "long_term_stretch": []},
-            "excluded_count": 0,
-            "error": str(e),
-        }
-
-    classified = _parse_gemini_response(response)
+    classified = _parse_llm_json(text)
 
     if "error" in classified:
         print(f"CLASSIFICATION PARSE ERROR: {classified['error']}")
-        return {
-            "eligible": {"safe": [], "target": [], "ambitious": []},
-            "growth":   {"near_eligible": [], "long_term_stretch": []},
-            "excluded_count": 0,
-            "error": classified["error"],
-        }
+        return {**empty_result, "error": classified["error"]}
 
     return classified
 
 
 # ---------------------------------------------------------------------------
 # get_opportunities — public entry point
-# Orchestrates: generate_queries → fetch_results → classify_opportunities
+# Orchestrates: cache check → generate_queries → fetch_results →
+# classify_opportunities → cache write.
+#
+# Caching lives here (not in the route) so both the lazy
+# GET /opportunities/{user_id} route and the concurrent cache-warming branch
+# triggered from POST /goal-analysis/ share one cache path.
 # ---------------------------------------------------------------------------
 
-def get_opportunities(goal: Dict[str, Any], profile: Dict[str, Any]) -> Dict[str, Any]:
+def _cache_key_for_goal(goal: Dict[str, Any]) -> str:
+    goal_str = f"{goal.get('goal_type')}_{goal.get('field')}_{goal.get('degree')}_{goal.get('country')}"
+    return hashlib.md5(goal_str.encode()).hexdigest()
+
+
+async def get_opportunities(
+    user_id: str,
+    goal: Dict[str, Any],
+    profile: Dict[str, Any],
+    mcp_client: Any,
+    llm_client: Any,
+) -> Dict[str, Any]:
 
     print("\n" + "=" * 50)
     print("OPPORTUNITY AGENT STARTED")
@@ -423,20 +420,28 @@ def get_opportunities(goal: Dict[str, Any], profile: Dict[str, Any]) -> Dict[str
     print(f"  Degree    : {goal.get('degree')}")
     print("=" * 50)
 
+    # ── Cache check ──────────────────────────────────────────────────────
+    query_hash = _cache_key_for_goal(goal)
+    cached = await find_latest(mcp_client, "rapid", "opportunities_cache", {"user_id": user_id, "query_hash": query_hash})
+    if cached:
+        print("[Opportunities] Cache hit!")
+        return cached["data"]
+
     # Step 1 — Build queries
     queries = generate_queries(goal)
     print(f"\nQueries generated: {queries}")
 
     # Step 2 — Fetch from Search Agent
-    raw_results = fetch_results(queries)
+    raw_results = await fetch_results(queries, llm_client)
 
     total_fetched = sum(len(v) for v in raw_results.values())
     print(f"\nTotal results fetched: {total_fetched}")
 
-    # Empty results — return clean empty response, skip Gemini call
+    # Empty results — return clean empty response, skip LLM classification call
     if total_fetched == 0:
         print("No results to classify.")
         return {
+            "status": "success",
             "goal_summary": {
                 "goal_type": goal.get("goal_type"),
                 "field":     goal.get("field"),
@@ -456,7 +461,7 @@ def get_opportunities(goal: Dict[str, Any], profile: Dict[str, Any]) -> Dict[str
         }
 
     # Step 3 — Classify all results
-    classified = classify_opportunities(raw_results, profile, goal)
+    classified = await classify_opportunities(raw_results, profile, goal, llm_client)
 
     # Step 4 — Assemble final response
     eligible = classified.get("eligible", {"safe": [], "target": [], "ambitious": []})
@@ -480,7 +485,8 @@ def get_opportunities(goal: Dict[str, Any], profile: Dict[str, Any]) -> Dict[str
     print(f"  Excluded  : {excluded_count}")
     print("=" * 50)
 
-    return {
+    response_data = {
+        "status": "success",
         "goal_summary": {
             "goal_type": goal.get("goal_type"),
             "field":     goal.get("field"),
@@ -497,4 +503,28 @@ def get_opportunities(goal: Dict[str, Any], profile: Dict[str, Any]) -> Dict[str
             "growth_count":   growth_count,
             "excluded_count": excluded_count,
         },
+        "reasoning": classified.get("reasoning", ""),
     }
+
+    # ── Cache write (only if we actually got results) ───────────────────
+    if total_fetched > 0:
+        try:
+            doc = {
+                "_id": str(uuid.uuid4()),
+                "user_id": user_id,
+                "query_hash": query_hash,
+                "data": response_data,
+                "created_at": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            }
+            await mcp_client.session.call_tool("insert-many", arguments={
+                "database": "rapid",
+                "collection": "opportunities_cache",
+                "documents": [doc],
+            })
+            print(f"[Opportunities] Cached results for user {user_id}")
+        except Exception as e:
+            print(f"[Opportunities] Cache write error: {e}")
+    else:
+        print("[Opportunities] Did not cache because 0 results were fetched (likely rate limit).")
+
+    return response_data

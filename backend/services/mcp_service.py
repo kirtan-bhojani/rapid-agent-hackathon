@@ -5,13 +5,14 @@ import time
 from contextlib import AsyncExitStack
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
+from config import settings
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("mcp_manager")
 
 class MCPManager:
     def __init__(self):
-        uri = os.environ.get("MDB_MCP_CONNECTION_STRING") or os.environ.get("MONGO_URI", "")
+        uri = settings.MDB_MCP_CONNECTION_STRING or ""
         env_vars = os.environ.copy()
         env_vars["MDB_MCP_CONNECTION_STRING"] = uri
         
