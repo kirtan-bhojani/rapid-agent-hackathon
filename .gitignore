@@ -1,16 +1,25 @@
 # Python
 venv/
+.venv/
 __pycache__/
+.pytest_cache/
 *.pyc
+_uvicorn.log
 
 # Node
 node_modules/
 
 # Environment variables
 .env
+backend/.env
+frontend/.env
 
 # Vite
 dist/
-backend/.env
-frontend/.env
+
+# Misc
 backend/uploads/
+my_structure.txt
+architecture.md
+SUMMARY.md
+Expectation.md
